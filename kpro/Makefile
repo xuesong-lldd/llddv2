@@ -1,4 +1,4 @@
-obj-m := tap_percpu.o
+obj-m := tap_kpro.o
 KERNELDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
