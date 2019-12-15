@@ -3,8 +3,9 @@
 
 static int demodev_init(void)
 {
+	int *p;
 	printk("+%s\n", __func__);
-	int *p = (int *)0x12345678;
+	p = (int *)0x12345678;
 	*p = 0xdeadbeef;
 	//panic("intension oops");
 	return 0;
