@@ -3,6 +3,7 @@
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/mm.h>
+#include <linux/vmalloc.h>
 
 
 static int tap_atomic_init(void)
@@ -16,7 +17,7 @@ static int tap_atomic_init(void)
 	printk("++%s++\n", __func__);
 	printk("__PHYSICAL_START = 0x%x\n", __PHYSICAL_START);
 	/* check some addr translation macro */
-	printk("__START_KERNEL_map = 0x%lx, PAGE_OFFSET = 0x%lx, phys_base =0x%lx\n",__START_KERNEL_map, PAGE_OFFSET, phys_base);
+	printk("__START_KERNEL_map = 0x%lx, PAGE_OFFSET = 0x%lx\n",__START_KERNEL_map, PAGE_OFFSET);
 
 	/* check the 'kernel text mapping' area in the kernel virtual mem space */
 	pa = __pa_symbol(alloc_workqueue);
@@ -25,18 +26,18 @@ static int tap_atomic_init(void)
 	/* check the 'direct mapping of all physical memory (page_offset_base)' area */
 	printk("page_offset_base = 0x%lx\n", page_offset_base);	
 	kp = kzalloc(sizeof(*kp), GFP_KERNEL);
-	printk("kp = 0x%px, pa = 0x%llx, sym_p = 0x%px\n", kp, pa, sym_p);
+	printk("kp.kzalloc = 0x%px, pa.alloc_wq = 0x%llx, sym_p.alloc_wq = 0x%px\n", kp, pa, sym_p);
 
 	/* check the 'vmalloc/ioremap space (vmalloc_base)' area */
 	vp = vmalloc(sizeof(unsigned long));
-	printk("vp = 0x%px\n", vp);
+	printk("vp.vmalloc = 0x%px\n", vp);
 
 	/* page allocator */
 	pg = alloc_page(GFP_KERNEL);
 	pg_addr = page_address(pg);
-	printk("pg_addr = 0x%px\n", pg_addr);
+	printk("pg_addr.alloc_page = 0x%px\n", pg_addr);
 
-	/* chack address valid */
+	/* check if the virtual address has valid mapping */
 	valid = !!virt_addr_valid(sym_p);
 	printk("sym_p valid = %d\n", valid);
 
@@ -50,12 +51,13 @@ static int tap_atomic_init(void)
 
 	/* dissect the page corresponding to the kernel image mapping area */
 	ipg = virt_to_page(sym_p);
-	printk("ipg = %px, virp of page = %px\n", ipg, page_address(ipg));
+	printk("page of ksym = %px, virp of page = %px\n", ipg, page_address(ipg));
 
+	/* teardown the resource allocated */
 	free_page((unsigned long)pg_addr);
-	free_page((unsigned long)sym_p);
 	vfree(vp);
 	kfree(kp);
+
 	return 0;
 }
 
