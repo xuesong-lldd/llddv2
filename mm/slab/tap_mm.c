@@ -16,15 +16,21 @@ static int tap_atomic_init(void)
 
 	printk("++%s++\n", __func__);
 	printk("__PHYSICAL_START = 0x%x\n", __PHYSICAL_START);
+
 	/* check some addr translation macro */
-	printk("__START_KERNEL_map = 0x%lx, PAGE_OFFSET = 0x%lx\n",__START_KERNEL_map, PAGE_OFFSET);
+	printk("__START_KERNEL_map = 0x%lx\n",__START_KERNEL_map);
 
 	/* check the 'kernel text mapping' area in the kernel virtual mem space */
 	pa = __pa_symbol(alloc_workqueue);
 	sym_p = alloc_workqueue;
 
 	/* check the 'direct mapping of all physical memory (page_offset_base)' area */
-	printk("page_offset_base = 0x%lx\n", page_offset_base);	
+#ifdef CONFIG_DYNAMIC_MEMORY_LAYOUT
+	/* page_offset_base will not be exported if DYNAMIC_MEMORY_LAYOUT is not enabled */
+	printk("page_offset_base = 0x%lx\n", page_offset_base);
+#else
+	printk("__PAGE_OFFSET = 0x%lx\n", __PAGE_OFFSET);
+#endif
 	kp = kzalloc(sizeof(*kp), GFP_KERNEL);
 	printk("kp.kzalloc = 0x%px, pa.alloc_wq = 0x%llx, sym_p.alloc_wq = 0x%px\n", kp, pa, sym_p);
 
