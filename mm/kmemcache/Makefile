@@ -1,4 +1,4 @@
-obj-m := tap_slab.o
+obj-m := tap_kmem_cache.o
 KERNELDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
