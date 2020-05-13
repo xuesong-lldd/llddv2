@@ -1,3 +1,0 @@
-This is a demonstration of the in-tree kmod build method via
-the kbuild system..., it will complain that 'loading out-of-tree module taints kernel'
-for a out-of-tree kmodule without kbuild
