@@ -1,14 +1,14 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 
-void hello_exported_function(void)
+void demofunc(int a, int b)
 {
-	printk("from the exported function\n");
+	printk("from the exported function: %d/%d\n", a, b);
 
 	return;
 }
 
-EXPORT_SYMBOL_GPL(hello_exported_function);
+EXPORT_SYMBOL_GPL(demofunc);
 
 static int hello_init(void)
 {
