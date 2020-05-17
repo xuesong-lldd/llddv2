@@ -1,12 +1,28 @@
 #include <linux/module.h>
 #include <linux/gfp.h>
 #include <linux/mm.h>
+#include <uapi/asm-generic/poll.h>
+#include <linux/poll.h>
+
+struct my_poll_list {
+	struct my_poll_list *next;
+	int len;
+	struct pollfd entries[0];
+};
+
+#define N_STACK_PPS ((sizeof(stack_pps) - sizeof(struct my_poll_list))  / \
+			sizeof(struct pollfd))
 
 struct page * pg_addr;
 static int tap_page_init(void)
 {
+	long stack_pps[POLL_STACK_ALLOC/sizeof(long)];
+
 	printk("++%s++\n", __func__);
-	
+
+	printk("sizeof(struct my_poll_list) = %ld\n", sizeof(struct my_poll_list));
+	printk("sizeof(stack_pps) = %ld, N_STACK_PPS = %ld\n", sizeof(stack_pps), N_STACK_PPS);
+
 	pg_addr = alloc_pages(GFP_KERNEL|GFP_DMA, 4);
 	if (!pg_addr) {
 		printk("allocate pages failed\n");
