@@ -3,7 +3,7 @@
 #include <linux/hrtimer.h>
 #include <linux/ktime.h>
 
-unsigned long timer_interval_ns = (2 * 1e9);
+unsigned long timer_interval_ns = (2);
 static struct hrtimer hr_timer;
 
 enum hrtimer_restart timer_callback( struct hrtimer *timer_for_restart )

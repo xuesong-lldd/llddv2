@@ -28,7 +28,7 @@ static inline const char *get_machine_type(unsigned int type)
 		break;
 
 		case 62:
-		machine = "AMD x86_64";
+		machine = "ECS AMD x86_64";
 		break;
 
 		case 183:
