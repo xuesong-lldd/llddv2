@@ -10,20 +10,24 @@ struct task_struct *pt = &init_task;
 static int tap_atomic_init(void)
 {
 	int old;
-	unsigned long *p;
 	
 	printk("++%s++, pid of init_task = %d\n", __func__, pt->pid);
-	p = (unsigned long *)kmalloc(sizeof(*p), GFP_KERNEL);
-	if (!p) {
-		pr_err("kzalloc() failed!\n");
-		return -ENOMEM;
-	}
-	printk("Addr of p = 0x%px\n", p);
+
+	/* 
+	 * atomic_cmpxchg(ptr, compared_var, new)
+	 * atomic_cmpxchg will compare the value in [ptr] with the 'compared_var':
+	 * if *ptr == compared_var, then *ptr = new, return the original val of ptr,
+	 * if *ptr != compared_var, then do nothing, return the original val of ptr
+	 */	
 	old = atomic_cmpxchg(&g_lck_val, 1, 5);
 	printk("old = %d, new_lck_val = %d\n", old, atomic_read(&g_lck_val));
+	
 	old = atomic_cmpxchg(&g_lck_val, 5, 3);
 	printk("old = %d, new_lck_val = %d\n", old, atomic_read(&g_lck_val));
-	vfree(p);		
+	
+	old = atomic_cmpxchg(&g_lck_val, 4, 6);
+	printk("old = %d, new_lck_val = %d\n", old, atomic_read(&g_lck_val));
+
 	return 0;
 }
 
