@@ -7,6 +7,20 @@
 static atomic_t g_lck_val = ATOMIC_INIT(1);
 
 struct task_struct *pt = &init_task;
+
+static int my_atomic_cmpxchg(atomic_t *ptr, int old, int new)
+{
+	int ret;
+
+	volatile int *ptr_ = (volatile int *)(ptr);
+	asm volatile("lock cmpxchgl %2,%1"			\
+		     : "=a" (ret), "+m" (*ptr_)		\
+		     : "r" (new), "0" (old)			\
+		     : "memory");
+
+	return ret;
+}
+
 static int tap_atomic_init(void)
 {
 	int old;
@@ -26,6 +40,12 @@ static int tap_atomic_init(void)
 	printk("old = %d, new_lck_val = %d\n", old, atomic_read(&g_lck_val));
 	
 	old = atomic_cmpxchg(&g_lck_val, 4, 6);
+	printk("old = %d, new_lck_val = %d\n", old, atomic_read(&g_lck_val));
+
+	old = my_atomic_cmpxchg(&g_lck_val, 3, 4);
+	printk("old = %d, new_lck_val = %d\n", old, atomic_read(&g_lck_val));
+
+	old = my_atomic_cmpxchg(&g_lck_val, 5, 6);
 	printk("old = %d, new_lck_val = %d\n", old, atomic_read(&g_lck_val));
 
 	return 0;
