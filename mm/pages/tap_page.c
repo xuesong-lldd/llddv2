@@ -13,12 +13,14 @@ struct my_poll_list {
 #define N_STACK_PPS ((sizeof(stack_pps) - sizeof(struct my_poll_list))  / \
 			sizeof(struct pollfd))
 
-#define DMA_ALLOC_ORDER (2)
+#define DMA_ALLOC_ORDER (4)
 
 struct page * pg_addr;
 static int tap_page_init(void)
 {
 	long stack_pps[POLL_STACK_ALLOC/sizeof(long)];
+	void *tmp;
+	unsigned long uaddr;
 
 	printk("++%s++\n", __func__);
 
@@ -31,6 +33,11 @@ static int tap_page_init(void)
 		return -1;
 	}
 
+	tmp = page_address(pg_addr);
+	printk("tmp = %px\n", tmp);
+
+	uaddr = __get_free_page(GFP_KERNEL);
+	printk("uaddr = 0x%lx\n", uaddr);
 	return 0;
 }
 
