@@ -16,7 +16,7 @@ main(int argc, char *argv[])
 		printf("usage:\n\t load_kmod kmod_path\n");
 		return 0;
 	}
-
+	printf("pid = %d\n", getpid());
 	fd = open(argv[1], O_RDONLY);
 	if (fd < 0) {
 		printf("open file %s failed: %d\n", argv[1], fd);
