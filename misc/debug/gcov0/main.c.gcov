@@ -1,0 +1,60 @@
+        -:    0:Source:main.c
+        -:    0:Graph:main.gcno
+        -:    0:Data:main.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include <stdio.h>
+        -:    2:#include <stdlib.h>
+        -:    3:
+    #####:    4:int a_5(int a)
+        -:    5:{
+    #####:    6:	int rv = 0;
+    #####:    7:	if (a > 5) {
+    #####:    8:		printf("invalid parameters...a = %d\n", a);
+    #####:    9:		return -1;
+        -:   10:	}
+        -:   11:
+    #####:   12:	for (int i = 0; i < a; i++) {
+    #####:   13:		rv += i;
+        -:   14:	}
+        -:   15:
+    #####:   16:	return rv;
+        -:   17:}
+        -:   18:
+        1:   19:int b_10(int b)
+        -:   20:{
+        1:   21:	int rv = 0;
+        1:   22:	if (b > 10) {
+    #####:   23:		printf("invalid parameter...b = %d\n", b);
+    #####:   24:		return -1;
+        -:   25:	}
+        -:   26:
+       11:   27:	for (int i = 0; i < b; i++) {
+       10:   28:		rv += i * b;
+        -:   29:	}
+        -:   30:
+        1:   31:	return rv;
+        -:   32:}
+        -:   33:
+        1:   34:int main(int argc, char *argv[])
+        -:   35:{
+        1:   36:	int i = 0, rv = 0;
+        1:   37:	if (argc <= 1) {
+    #####:   38:		printf("usage:\n\tmain 10\n");
+    #####:   39:		return -1;
+        -:   40:	}
+        -:   41:
+        1:   42:	i = atoi(argv[1]);
+        1:   43:	switch (i) {
+    #####:   44:		case 5:
+    #####:   45:			rv = a_5(5);
+    #####:   46:			printf("a_5: rv = %d\n", rv);
+    #####:   47:			break;
+        1:   48:		case 10:
+        1:   49:			rv = b_10(10);
+        1:   50:			printf("b_10: rv = %d\n", rv);
+        1:   51:			break;	       
+        -:   52:	}
+        -:   53:
+        1:   54:	return 0;
+        -:   55:}

@@ -1,0 +1,11 @@
+SECTIONS
+{
+  per_cpu__current_kprobe = 0xffffffff804052a0;
+  init_new_context        = 0xffffffff8006d7f7;
+  acct_update_integrals   = 0xffffffff8004ecd8;
+  sched_exec              = 0xffffffff800457be;
+  __mmdrop                = 0xffffffff8008d5e2;
+  count                   = 0xffffffff80039821;
+  copy_strings            = 0xffffffff80017381;
+  mm_alloc                = 0xffffffff8004c098;
+}

@@ -1,0 +1,217 @@
+Temporary breakpoint 1 at 0x915: file astall.c, line 32.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Temporary breakpoint 1, main () at astall.c:32
+32	{
+Breakpoint 2 at 0x7ffff78f55d0: file forward.c, line 192.
+Breakpoint 3 at 0x7ffff78f5600: file forward.c, line 194.
+[New Thread 0x7ffff77c4700 (LWP 1730)]
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	pthread_join_common.c: No such file or directory.
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c
+
+Thread 1 "astall" received signal SIGINT, Interrupt.
+0x00007ffff7bbed2d in __GI___pthread_timedjoin_ex (threadid=140737345505024, thread_return=0x0, abstime=0x0, block=<optimized out>) at pthread_join_common.c:89
+89	in pthread_join_common.c

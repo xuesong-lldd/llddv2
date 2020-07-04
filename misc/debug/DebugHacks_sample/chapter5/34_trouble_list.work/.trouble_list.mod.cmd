@@ -1,0 +1,1 @@
+cmd_/home/dennis/debug/DebugHacks_sample/chapter5/34_trouble_list.work/trouble_list.mod := { echo  /home/dennis/debug/DebugHacks_sample/chapter5/34_trouble_list.work/trouble_list.o; echo; } > /home/dennis/debug/DebugHacks_sample/chapter5/34_trouble_list.work/trouble_list.mod
