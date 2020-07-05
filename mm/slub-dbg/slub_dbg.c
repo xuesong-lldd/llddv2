@@ -25,7 +25,7 @@ static int slub_dbg_init(void)
 	kfree(p);
 
 	for (i = 0; i < ALLOC_SIZE; i++) {
-		printk("After freed:p[%-2d] = 0x%x\n", i, p[i]);
+		printk("After freed:p[%2d] = 0x%x\n", i, p[i]);
 	}
 	return 0;
 }
