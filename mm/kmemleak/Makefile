@@ -1,5 +1,4 @@
-obj-m := tap_crash.o
-#CFLAGS_tap_crash.o = -g -O0
+obj-m := kmemleak_demo.o
 KERNELDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 

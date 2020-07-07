@@ -5,8 +5,8 @@
 #include <linux/slab.h>
 
 /*
- * echo 4 for oops
- * echo 5 for soft lockup
+ * echo 4 for oops: #echo 4 > bomb
+ * echo 5 for workqueue stall (need 'CONFIG_WQ_WATCHDOG=y' to enable wq watchdog)
  * echo 6 for spin_lock deadlock
  */
 
@@ -25,6 +25,13 @@ spinlock_t g_spinlck;
 
 
 struct work_struct work_a;
+/* 
+ * work_a waits for the g_flag becomes 1 to exit, but
+ * g_flag can only be changed by work_b which can be
+ * executed only when the work_a succeeds to exit, so
+ * it's an infinite loop... The WQ WDG can be used
+ * to detect this condition
+ */
 void work_a_func(struct work_struct *work)
 {
         printk("+%s\n", __func__);
@@ -49,15 +56,15 @@ static void do_oops(void)
 	*p = 0xdeadbeef;
 }
 
-static void do_soft_lockup(void)
+/* workqueue stall */
+static void do_workqueue_stall(void)
 {
 	queue_work(g_my_wq, &work_a);
         queue_work(g_my_wq, &work_b);
 }
 
-/* spin lock lockup */
-struct work_struct splck_work;
-void splck_work_func(struct work_struct *work)
+/* spinlock softlockup */
+void do_spinlck_deadlock(void)
 {
 	printk("+%s\n", __func__);
 
@@ -65,11 +72,6 @@ void splck_work_func(struct work_struct *work)
         spin_lock(&g_spinlck);
 
 	printk("-%s\n", __func__);
-}
-
-static void do_spinlck_deadlock(void)
-{
-	queue_work(g_my_wq, &splck_work);
 }
 
 static ssize_t att_show(struct kobject *kobj, struct attribute *attr, char *buf)
@@ -99,15 +101,12 @@ static ssize_t att_store(struct kobject *kobj, struct attribute *attr,
         	break;
     	case 4:
 		do_oops();
-        	//kobject_uevent(kobj, KOBJ_ONLINE);
         	break;
     	case 5:
-		do_soft_lockup();
-        	//kobject_uevent(kobj, KOBJ_OFFLINE);
+		do_workqueue_stall();
         	break;
     	case 6:
 		do_spinlck_deadlock();
-        	//kobj->uevent_suppress = 1;
         	break;
     	case 7:
         	kobj->uevent_suppress = 0;
@@ -146,7 +145,6 @@ static int kobj_demo_init(void)
 	g_my_wq = alloc_workqueue("wq_softlockup_test", 0, 0);
         INIT_WORK(&work_a, work_a_func);
         INIT_WORK(&work_b, work_b_func);
-	INIT_WORK(&splck_work, splck_work_func);
 
  	parent = kobject_create_and_add("oops", NULL);
 	if (!parent)
@@ -199,4 +197,4 @@ module_exit(kobj_demo_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("xuesong.cxs@outlook.com");
-MODULE_DESCRIPTION("A simple kernel module to demo the kobject behavior");
+MODULE_DESCRIPTION("A simple kernel module to demo the kinds of kdump");
