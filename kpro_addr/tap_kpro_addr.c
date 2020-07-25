@@ -2,30 +2,40 @@
 #include <linux/kernel.h>
 #include <linux/kprobes.h>
 
+/*
+ * dis load_module, the offset 76 is at 'if (info->len < sizeof(*(info->hdr)))' in
+ * elf_header_check()
+ */
 static struct kprobe kp = {
-	.symbol_name = "_do_fork",
+	.symbol_name = "load_module",
+	.offset = 76,
 };
 
-/* kprobe pre_handler: called just before the probed instruction is executed */
+/* Called before addr is executed... */
 static int handler_pre(struct kprobe *p, struct pt_regs *regs)
 {
-	printk(KERN_INFO "pre_handler: p->addr = 0x%px, ip = 0x%lx,"
-			" flags = 0x%lx, cs = %lu\n",
-		p->addr, regs->ip, regs->flags, regs->cs);
-	dump_stack();
-	
+	/* r13 should be the length of the kmod file, for instance, the chrdev.ko */
+	printk("original r13 = 0x%lx\n", regs->r13);
 	return 0;
+}
+
+/* Called after addr is executed, unless... */
+static void handler_post(struct kprobe *p, struct pt_regs *regs, unsigned long flags)
+{
+	regs->r13 = 30; /* 30 < sizeof(*(info->hdr)) */
+	return;
 }
 
 static int kpro_addr_init(void)
 {
 	int ret;
-	kprobe_opcode_t *addr;
+	unsigned long *addr;
 
 	printk("+%s\n", __func__);
+	kp.post_handler = handler_post;
 	kp.pre_handler = handler_pre;
 
-	addr = (kprobe_opcode_t *)kallsyms_lookup_name(kp.symbol_name);
+	addr = (unsigned long *)kallsyms_lookup_name(kp.symbol_name);
 	printk("addr = %px, op_code = 0x%lx\n", addr, (unsigned long)*addr);
 	ret = register_kprobe(&kp);
 	if (ret < 0) {

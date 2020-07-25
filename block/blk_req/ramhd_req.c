@@ -12,19 +12,20 @@
 #include <asm/uaccess.h>
 
 #define RAMHD_NAME              "ramsd"
-#define RAMHD_MAX_DEVICE        2
-#define RAMHD_MAX_PARTITIONS    4
+#define RAMHD_MAX_DEVICE        1
+#define RAMHD_MAX_PARTITIONS    2
 
 #define RAMHD_SECTOR_SIZE       512
-#define RAMHD_SECTORS           16
-#define RAMHD_HEADS             4
-#define RAMHD_CYLINDERS         256
+#define RAMHD_SECTORS           4
+#define RAMHD_HEADS             16
+#define RAMHD_CYLINDERS         1024
 
 #define RAMHD_SECTOR_TOTAL      (RAMHD_SECTORS * RAMHD_HEADS * RAMHD_CYLINDERS)
 #define RAMHD_SIZE              (RAMHD_SECTOR_SIZE * RAMHD_SECTOR_TOTAL) //8MB
 
+
 typedef struct{
-	unsigned char   *data;
+	char   *data;
 	struct request_queue *queue;
 	spinlock_t      lock;
 	struct gendisk  *gd;
@@ -34,6 +35,7 @@ static char *sdisk[RAMHD_MAX_DEVICE];
 static RAMHD_DEV *rdev[RAMHD_MAX_DEVICE];
 
 static dev_t ramhd_major;
+static void ramhd_space_clean(void);
 
 static int ramhd_space_init(void)
 {
@@ -43,11 +45,15 @@ static int ramhd_space_init(void)
 		sdisk[i] = vmalloc(RAMHD_SIZE);
 		if(!sdisk[i]){
 			err = -ENOMEM;
-			return err;
+			goto err_out;
 		}
 		memset(sdisk[i], 0, RAMHD_SIZE);
 	}
 
+	return err;
+
+err_out:
+	ramhd_space_clean();
 	return err;
 }
 
@@ -55,19 +61,9 @@ static void ramhd_space_clean(void)
 {
 	int i;
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++){
-		vfree(sdisk[i]);
+		if (sdisk[i])
+			vfree(sdisk[i]);
 	}
-}
-
-static int alloc_ramdev(void)
-{
-	int i;
-	for(i = 0; i < RAMHD_MAX_DEVICE; i++){
-		rdev[i] = kzalloc(sizeof(RAMHD_DEV), GFP_KERNEL);
-		if(!rdev[i])
-			return -ENOMEM;
-	}
-	return 0;
 }
 
 static void clean_ramdev(void)
@@ -76,17 +72,28 @@ static void clean_ramdev(void)
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++){
 		if(rdev[i])
 			kfree(rdev[i]);
-	}   
-}       
+	}
+}
+
+
+static int alloc_ramdev(void)
+{
+	int i;
+	for(i = 0; i < RAMHD_MAX_DEVICE; i++){
+		rdev[i] = kzalloc(sizeof(RAMHD_DEV), GFP_KERNEL);
+		if(!rdev[i])
+			goto err_out;
+	}
+	return 0;
+
+err_out:
+	clean_ramdev();
+	return -ENOMEM;
+}
 
 int ramhd_open(struct block_device *bdev, fmode_t mode)
 {
 	return 0;
-}
-
-void ramhd_release(struct gendisk *gd, fmode_t mode)
-{   
-	return;
 }
 
 static int ramhd_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd, unsigned long arg)
@@ -98,7 +105,8 @@ static int ramhd_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd
 	{
 		case HDIO_GETGEO:
 			err = !access_ok(arg, sizeof(geo));
-			if(err) return -EFAULT;
+			if(err)
+				return -EFAULT;
 
 			geo.cylinders = RAMHD_CYLINDERS;
 			geo.heads = RAMHD_HEADS;
@@ -106,6 +114,7 @@ static int ramhd_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd
 			geo.start = get_start_sect(bdev);
 			if(copy_to_user((void *)arg, &geo, sizeof(geo)))
 				return -EFAULT;
+
 			return 0;
 	}
 
@@ -116,7 +125,6 @@ static struct block_device_operations ramhd_fops =
 {   
 	.owner = THIS_MODULE,
 	.open = ramhd_open,
-	.release = ramhd_release,
 	.ioctl = ramhd_ioctl,
 };
 
@@ -145,7 +153,7 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 	}
 */
 	RAMHD_DEV *pdev;
-	unsigned long addr;
+	char *addr;
 	char *pData;
 	void *buffer;
 	struct request *req = bd->rq;
@@ -154,8 +162,12 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 	
 	pdev = (RAMHD_DEV *)req->rq_disk->private_data;
 	pData = pdev->data;
-	addr = (unsigned long)pData + start * RAMHD_SECTOR_SIZE;
+	addr = pData + start * RAMHD_SECTOR_SIZE;
 	buffer = bio_data(req->bio);
+	if (!buffer) {
+		pr_err(RAMHD_NAME ":invalid bio\n");
+		return BLK_STS_IOERR;
+	}
 
 	/* 
 	 * the operaion for the real device is to insert the req into a list,
@@ -163,7 +175,7 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 	 */  
 	blk_mq_start_request(req);
 
-	if (start + size > RAMHD_SIZE) {
+	if (start * RAMHD_SECTOR_SIZE + size > RAMHD_SIZE) {
 		pr_err(RAMHD_NAME ": bad access: block=%llu, "
 		       "count=%u\n",
 		       (unsigned long long)blk_rq_pos(req),
@@ -173,9 +185,9 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 
 	spin_lock_irq(&pdev->lock);
 	if (rq_data_dir(req) == READ)
-		memcpy(buffer, (char *)addr, size);
+		memcpy(buffer, addr, size);
 	else
-		memcpy((char *)addr, buffer, size);
+		memcpy(addr, buffer, size);
 	spin_unlock_irq(&pdev->lock);
 
 	blk_mq_end_request(req, BLK_STS_OK);
@@ -200,14 +212,14 @@ int ramhd_init(void)
 		rdev[i]->data = sdisk[i]; 
 		rdev[i]->gd = alloc_disk(RAMHD_MAX_PARTITIONS);
 		spin_lock_init(&rdev[i]->lock);
-		rdev[i]->queue = blk_mq_init_sq_queue(&tag_set[i], &rdev_mq_ops, 16,
+		rdev[i]->queue = blk_mq_init_sq_queue(&tag_set[i], &rdev_mq_ops, 2,
 					BLK_MQ_F_SHOULD_MERGE);;
 		rdev[i]->gd->major = ramhd_major;
 		rdev[i]->gd->first_minor = i * RAMHD_MAX_PARTITIONS;
 		rdev[i]->gd->fops = &ramhd_fops;
 		rdev[i]->gd->queue = rdev[i]->queue;
 		rdev[i]->gd->private_data = rdev[i];
-		sprintf(rdev[i]->gd->disk_name, "ramsd%c", 'a'+i);
+		sprintf(rdev[i]->gd->disk_name, "ramsd%c", 'a' + i);
 		set_capacity(rdev[i]->gd, RAMHD_SECTOR_TOTAL);
 		add_disk(rdev[i]->gd);
 	}

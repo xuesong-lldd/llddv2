@@ -1,3 +1,11 @@
+/*
+ * A very simple ram-based block device:
+ * Usage:
+ * 1. fdisk /dev/ramhda
+ * 2. mkfs.ext4 /dev/ramhda1
+ * 3. mount /dev/ramhda1 /mnt
+ */
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -8,18 +16,19 @@
 #include <linux/vmalloc.h>
 #include <linux/blkdev.h>
 #include <linux/hdreg.h>
+#include <linux/blk_types.h>
 
 #define RAMHD_NAME              "ramhd"
 #define RAMHD_MAX_DEVICE        2
 #define RAMHD_MAX_PARTITIONS    4
 
 #define RAMHD_SECTOR_SIZE       512
-#define RAMHD_SECTORS           16
+#define RAMHD_SECTORS           32
 #define RAMHD_HEADS             4
-#define RAMHD_CYLINDERS         256
+#define RAMHD_CYLINDERS         512
 
 #define RAMHD_SECTOR_TOTAL      (RAMHD_SECTORS * RAMHD_HEADS * RAMHD_CYLINDERS)
-#define RAMHD_SIZE              (RAMHD_SECTOR_SIZE * RAMHD_SECTOR_TOTAL) //8MB
+#define RAMHD_SIZE              (RAMHD_SECTOR_SIZE * RAMHD_SECTOR_TOTAL) /* 32MB */
 
 typedef struct{
 	unsigned char *data;
@@ -62,22 +71,13 @@ static int ramhd_open(struct block_device *bdev, fmode_t mode)
 	return 0;
 }
 
-static int ramhd_release(struct gendisk *gd, fmode_t mode)
-{   
-	return 0;
-}
-
-static int ramhd_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd, unsigned long arg)
+static int ramhd_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd, unsigned long arg)
 {
-	int err;
 	struct hd_geometry geo;
 
 	switch(cmd)
 	{
 		case HDIO_GETGEO:
-			err = !access_ok(VERIFY_WRITE, arg, sizeof(geo));
-			if(err) return -EFAULT;
-
 			geo.cylinders = RAMHD_CYLINDERS;
 			geo.heads = RAMHD_HEADS;
 			geo.sectors = RAMHD_SECTORS;
@@ -91,52 +91,50 @@ static int ramhd_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd
 }
 
 static struct block_device_operations ramhd_fops =
-{   .owner = THIS_MODULE,
+{
+	.owner = THIS_MODULE,
 	.open = ramhd_open,
-	.release = ramhd_release,
 	.ioctl = ramhd_ioctl,
 };
 
-static int ramhd_make_request(struct request_queue *q, struct bio *bio)
+static blk_qc_t ramhd_make_request(struct request_queue *q, struct bio *bio)
 {
 	char *pRHdata;
-	char *pBuffer;
-	struct bio_vec *bvec;
-	int i;
-	int err = 0;
+	void *pBuffer;
+	struct bio_vec bvec;
+	struct bvec_iter iter;
 
-	struct block_device *bdev = bio->bi_bdev;
-	RAMHD_DEV *pdev = bdev->bd_disk->private_data;
+	RAMHD_DEV *pdev = bio->bi_disk->private_data;
+	if (bio_end_sector(bio) > get_capacity(bio->bi_disk))
+		goto io_error;
 
-	if(((bio->bi_sector * RAMHD_SECTOR_SIZE) + bio->bi_size) > RAMHD_SIZE){
-		err = -EIO;
-		goto out;
-	}
+	pRHdata = pdev->data + (bio->bi_iter.bi_sector * RAMHD_SECTOR_SIZE);
 
-	pRHdata = pdev->data + (bio->bi_sector * RAMHD_SECTOR_SIZE);
-
-	bio_for_each_segment(bvec, bio, i) {
-		pBuffer = kmap(bvec->bv_page) + bvec->bv_offset;
+	bio_for_each_segment(bvec, bio, iter) {
+		pBuffer = kmap_atomic(bvec.bv_page) + bvec.bv_offset;
 		switch(bio_data_dir(bio))
 		{
 			case READ:
-				memcpy(pBuffer, pRHdata, bvec->bv_len);
-				flush_dcache_page(bvec->bv_page);
+				memcpy(pBuffer, pRHdata, bvec.bv_len);
+				flush_dcache_page(bvec.bv_page);
 				break;
 			case WRITE:
-				flush_dcache_page(bvec->bv_page);
-				memcpy(pRHdata, pBuffer, bvec->bv_len);
+				flush_dcache_page(bvec.bv_page);
+				memcpy(pRHdata, pBuffer, bvec.bv_len);
 				break;
 			default:
-				kunmap(bvec->bv_page);
-				goto out;
+				kunmap_atomic(pBuffer);
+				goto io_error;
 		}
-		kunmap(bvec->bv_page);
-		pRHdata += bvec->bv_len;
+		kunmap_atomic(pBuffer);
+		pRHdata += bvec.bv_len;
 	}
-out:
-	bio_endio(bio, err);
-	return 0;      
+
+	bio_endio(bio);
+	return BLK_QC_T_NONE;
+io_error:
+	bio_io_error(bio);
+	return BLK_QC_T_NONE;
 }
 
 static int alloc_ramdev(void)
