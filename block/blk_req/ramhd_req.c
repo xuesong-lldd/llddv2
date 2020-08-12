@@ -1,3 +1,10 @@
+/*
+ * #insmod ramhd_req.ko
+ * #fdisk /dev/ramsda
+ * #mkfs.ext4 /dev/ramsda1
+ * #mount /dev/ramsda1 /mnt
+ */
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -16,12 +23,13 @@
 #define RAMHD_MAX_PARTITIONS    2
 
 #define RAMHD_SECTOR_SIZE       512
-#define RAMHD_SECTORS           4
-#define RAMHD_HEADS             16
-#define RAMHD_CYLINDERS         1024
+
+#define RAMHD_SECTORS           64
+#define RAMHD_HEADS             8
+#define RAMHD_CYLINDERS         512
 
 #define RAMHD_SECTOR_TOTAL      (RAMHD_SECTORS * RAMHD_HEADS * RAMHD_CYLINDERS)
-#define RAMHD_SIZE              (RAMHD_SECTOR_SIZE * RAMHD_SECTOR_TOTAL) //8MB
+#define RAMHD_SIZE              (RAMHD_SECTOR_SIZE * RAMHD_SECTOR_TOTAL) /* 128-MB */
 
 
 typedef struct{
@@ -153,43 +161,43 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 	}
 */
 	RAMHD_DEV *pdev;
-	char *addr;
-	char *pData;
-	void *buffer;
+	struct bio_vec bv;
+	struct req_iterator iter;
+	char *addr, *pData, *buffer;
+	struct bio *bio;
 	struct request *req = bd->rq;
-	unsigned long start = blk_rq_pos(req); // The sector cursor of the current request
-	unsigned long size  = blk_rq_cur_bytes(req);
+	unsigned long start = blk_rq_pos(req); /* The start sector of the current request */
+	unsigned int size;
 	
 	pdev = (RAMHD_DEV *)req->rq_disk->private_data;
 	pData = pdev->data;
+
 	addr = pData + start * RAMHD_SECTOR_SIZE;
-	buffer = bio_data(req->bio);
-	if (!buffer) {
-		pr_err(RAMHD_NAME ":invalid bio\n");
-		return BLK_STS_IOERR;
-	}
-
-	/* 
-	 * the operaion for the real device is to insert the req into a list,
-         * and handle them in a tasklet or sth like that...
-	 */  
+	printk("Total sectors of current req:%d\n", blk_rq_sectors(req));
 	blk_mq_start_request(req);
-
-	if (start * RAMHD_SECTOR_SIZE + size > RAMHD_SIZE) {
-		pr_err(RAMHD_NAME ": bad access: block=%llu, "
-		       "count=%u\n",
-		       (unsigned long long)blk_rq_pos(req),
-		       blk_rq_cur_sectors(req));
-		return BLK_STS_IOERR;
+	/*
+	 * Iterates each segment of the current request. the bios maybe merged by the I/O
+	 * scheduler for the perf purpose, so the sectors are contiguous for the req after
+	 * merged, but the backing pages of the bios is unnecessary contiguous, so we need
+	 * to take care of each segment within the bio from current req...
+         */
+	rq_for_each_segment(bv, req, iter) {
+		bio = iter.bio;
+		size = bv.bv_len;
+		buffer = page_address(bv.bv_page) + bv.bv_offset;
+		printk("current seg[sector:%lld] buffer: 0x%px, size = %u@offset %u\n", bio->bi_iter.bi_sector, buffer, size, bv.bv_offset);
+		if ((unsigned long)buffer % RAMHD_SECTOR_SIZE) {
+			pr_err(RAMHD_NAME ": buffer %p not aligned\n", buffer);
+			return BLK_STS_IOERR;
+		}
+		spin_lock_irq(&pdev->lock);
+		if (rq_data_dir(req) == READ)
+			memcpy(buffer, addr, size);
+		else
+			memcpy(addr, buffer, size);
+		spin_unlock_irq(&pdev->lock);
+		addr += size;
 	}
-
-	spin_lock_irq(&pdev->lock);
-	if (rq_data_dir(req) == READ)
-		memcpy(buffer, addr, size);
-	else
-		memcpy(addr, buffer, size);
-	spin_unlock_irq(&pdev->lock);
-
 	blk_mq_end_request(req, BLK_STS_OK);
 	return BLK_STS_OK;
 }
@@ -246,6 +254,6 @@ module_init(ramhd_init);
 module_exit(ramhd_exit);
 
 MODULE_AUTHOR("dennis chen @ AMDLinuxFGL");
-MODULE_DESCRIPTION("The ramdisk implementation with request function");
+MODULE_DESCRIPTION("The ramdisk implementation with request function; Adapt to the new mq framework on Aug.12, 2020");
 MODULE_LICENSE("GPL");
 
