@@ -5,6 +5,13 @@
 
 static char *buf;
 
+/*
+ * Those tricky magic number is only effective for slub_debug,
+ * it doesn't work for KASAN detector...
+ */
+#define OOB_HIT         0x55
+#define OOB_BYPASS      0xcc
+
 /* oob issue */
 void create_oob_error(void)
 {
@@ -12,7 +19,7 @@ void create_oob_error(void)
 
 	buf = kmalloc(8, GFP_KERNEL);
 	if(buf) {
-		memset(buf, 0x55, 12);
+		memset(buf, OOB_HIT, 12);
 		for(i = 0; i < 12; i++) 
 			printk("%x ", *(buf+i));
 		printk("\n");
