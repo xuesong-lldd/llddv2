@@ -22,22 +22,20 @@
 #define RAMHD_MAX_DEVICE        1
 #define RAMHD_MAX_PARTITIONS    2
 
-#define RAMHD_SECTOR_SIZE       512
-
-#define RAMHD_SECTORS           64
-#define RAMHD_HEADS             8
-#define RAMHD_CYLINDERS         512
-
-#define RAMHD_SECTOR_TOTAL      (RAMHD_SECTORS * RAMHD_HEADS * RAMHD_CYLINDERS)
-#define RAMHD_SIZE              (RAMHD_SECTOR_SIZE * RAMHD_SECTOR_TOTAL) /* 128-MB */
-
-
 typedef struct{
 	char   *data;
 	struct request_queue *queue;
 	spinlock_t      lock;
 	struct gendisk  *gd;
+	u32	sector_sz;
 }RAMHD_DEV;
+
+typedef struct ramdisk_paras {
+	u32 sector_sz;
+	u32 heads;
+	u32 sectors;
+	u32 cylinders;
+} ramdisk_paras_t;
 
 static char *sdisk[RAMHD_MAX_DEVICE];
 static RAMHD_DEV *rdev[RAMHD_MAX_DEVICE];
@@ -46,16 +44,12 @@ static dev_t ramhd_major;
 static void ramhd_space_clean(void);
 
 struct ramhd_of_plt_data {
-	u32 nr_sectors;
-	u32 nr_heads;
-	u32 nr_cylinders;
+	u32 model;
 	u32 capacity;
 };
 
 static const struct ramhd_of_plt_data bcm2711_ramdisk_data = {
-	.nr_sectors = 64,
-	.nr_heads = 8,
-	.nr_cylinders = 512,
+	.model = 0xdeadbeef,
 	.capacity = 134217728 /* 128-MB */
 };
 
@@ -66,17 +60,19 @@ static const struct of_device_id bcm2711_ramdisk_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, bcm2711_ramdisk_of_match);
 
-static int ramhd_space_init(void)
+static int ramhd_space_init(ramdisk_paras_t *rp)
 {
 	int i;
 	int err = 0;
+	u32 ramhd_sz = rp->sector_sz * rp->sectors * rp->heads * rp->cylinders;
+
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++){
-		sdisk[i] = vmalloc(RAMHD_SIZE);
+		sdisk[i] = vmalloc(ramhd_sz);
 		if(!sdisk[i]){
 			err = -ENOMEM;
 			goto err_out;
 		}
-		memset(sdisk[i], 0, RAMHD_SIZE);
+		memset(sdisk[i], 0, ramhd_sz);
 	}
 
 	return err;
@@ -160,14 +156,16 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 	struct req_iterator iter;
 	char *addr, *pData, *buffer;
 	struct bio *bio;
+	u32 sector_sz;
 	struct request *req = bd->rq;
 	unsigned long start = blk_rq_pos(req); /* The start sector of the current request */
 	unsigned int size;
 	
 	pdev = (RAMHD_DEV *)req->rq_disk->private_data;
 	pData = pdev->data;
+	sector_sz = pdev->sector_sz;
 
-	addr = pData + start * RAMHD_SECTOR_SIZE;
+	addr = pData + start * sector_sz;
 	printk("Total sectors of current req:%d\n", blk_rq_sectors(req));
 	blk_mq_start_request(req);
 	/*
@@ -181,7 +179,7 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 		size = bv.bv_len;
 		buffer = page_address(bv.bv_page) + bv.bv_offset;
 		printk("current seg[sector:%lld] buffer: 0x%px, size = %u@offset %u\n", bio->bi_iter.bi_sector, buffer, size, bv.bv_offset);
-		if ((unsigned long)buffer % RAMHD_SECTOR_SIZE) {
+		if ((unsigned long)buffer % sector_sz) {
 			pr_err(RAMHD_NAME ": buffer %p not aligned\n", buffer);
 			return BLK_STS_IOERR;
 		}
@@ -202,17 +200,18 @@ static const struct blk_mq_ops rdev_mq_ops = {
 	.queue_rq = ramhd_req_func,
 };
 
-int ramhd_init(void)
+static int ramhd_init(ramdisk_paras_t *rp)
 {
 	int i;
-	ramhd_space_init();
+	ramhd_space_init(rp);
 	alloc_ramdev();
 
 	ramhd_major = register_blkdev(0, RAMHD_NAME);
 
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++)
 	{
-		rdev[i]->data = sdisk[i]; 
+		rdev[i]->data = sdisk[i];
+		rdev[i]->sector_sz = rp->sector_sz;
 		rdev[i]->gd = alloc_disk(RAMHD_MAX_PARTITIONS);
 		spin_lock_init(&rdev[i]->lock);
 		rdev[i]->queue = blk_mq_init_sq_queue(&tag_set[i], &rdev_mq_ops, 2,
@@ -223,17 +222,64 @@ int ramhd_init(void)
 		rdev[i]->gd->queue = rdev[i]->queue;
 		rdev[i]->gd->private_data = rdev[i];
 		sprintf(rdev[i]->gd->disk_name, "ramsd%c", 'a' + i);
-		set_capacity(rdev[i]->gd, RAMHD_SECTOR_TOTAL);
+		set_capacity(rdev[i]->gd, rp->sectors * rp->heads * rp->cylinders);
 		add_disk(rdev[i]->gd);
 	}
 
 	return 0;
 }
 
+static int parse_ramdisk_paras(struct device *dev, ramdisk_paras_t *rp)
+{
+	if (!dev || !dev_fwnode(dev)) {
+		pr_err("invalid device tree blob\n");
+		return -1;
+	}
+
+	if (device_property_read_u32(dev, "sector_sz", &rp->sector_sz) < 0) {
+		dev_dbg(dev, "\"sector_sz\" property is missing...\n");
+		return -1;
+	}
+
+	if (device_property_read_u32(dev, "heads", &rp->heads) < 0) {
+		dev_dbg(dev, "\"heads\" property is missing...\n");
+		return -1;
+	}
+
+	if (device_property_read_u32(dev, "sectors", &rp->sectors) < 0) {
+		dev_dbg(dev, "\"sectors\" property is missing...\n");
+		return -1;
+	}
+
+	if (device_property_read_u32(dev, "cylinders", &rp->cylinders) < 0) {
+		dev_dbg(dev, "\"cylinders\" property is missing...\n");
+		return -1;
+	}
+
+	pr_info("sector_sz = %d, H = %d, S = %d, C = %d\n", rp->sector_sz, rp->heads, rp->sectors, rp->cylinders);
+
+	return 0;
+}
+
 static int ramhd_probe(struct platform_device *pdev)
 {
-	pr_info("+%s+\n", __func__);
-	return ramhd_init();
+	ramdisk_paras_t rp;
+	struct device *dev = &pdev->dev;
+	const struct ramhd_of_plt_data *rd_plt_data = NULL;
+
+	rd_plt_data = device_get_match_data(dev);
+	if (rd_plt_data->model != 0xdeadbeef) {
+		pr_err("wrong mode detected by the driver, probe failed\n");
+		return -1;
+	}
+	pr_info("+%s+: rd_plt_data = 0x%x\n", __func__, rd_plt_data->model);
+
+	if (parse_ramdisk_paras(dev, &rp)) {
+		pr_err("parse ramdisk parameters from DT failed\n");
+		return -1;
+	}
+
+	return ramhd_init(&rp);
 }
 
 int ramhd_drv_unregister(struct platform_device *pdev)
