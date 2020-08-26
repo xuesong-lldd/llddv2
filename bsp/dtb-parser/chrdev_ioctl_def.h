@@ -1,0 +1,8 @@
+#ifndef CHRDEV_IOCTL_DEF_H
+#define CHRDEV_IOCTL_DEF_H
+
+#define DTB_IOCTL_MAGIC	0xDD
+
+#define IOCTL_GET_DTB_FD _IOW(DTB_IOCTL_MAGIC, 0, int)
+
+#endif
