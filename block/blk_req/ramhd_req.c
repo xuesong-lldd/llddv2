@@ -106,15 +106,11 @@ int ramhd_open(struct block_device *bdev, fmode_t mode)
 
 static int ramhd_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd, unsigned long arg)
 {
-	int err;
 	struct hd_geometry geo;
 
 	switch(cmd)
 	{
 		case HDIO_GETGEO:
-			err = !access_ok(arg, sizeof(geo));
-			if(err)
-				return -EFAULT;
 
 			geo.cylinders = RAMHD_CYLINDERS;
 			geo.heads = RAMHD_HEADS;
