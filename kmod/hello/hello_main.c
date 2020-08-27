@@ -10,14 +10,16 @@ void demofunc(int a, int b)
 }
 
 EXPORT_SYMBOL_GPL(demofunc);
-int major[BLKDEV_MAJOR_MAX];
+//int major[BLKDEV_MAJOR_MAX];
 static int hello_init(void)
 {
+#if 0
 	int v, i, idx = 0;
 	char name[16];
 	printk("++%s++\n", __func__);
-	printk("hello world!\n");
-
+#endif
+	pr_info("hello world!\n");
+#if 0
 	printk("BLKDEV_MAJOR_MAX = %d\n", BLKDEV_MAJOR_MAX);
 	for (i = 0; i < BLKDEV_MAJOR_MAX; i++) {
 		printk("i = %d\n", i);
@@ -36,6 +38,7 @@ static int hello_init(void)
 		printk("unregister %s, major = %d\n", name, major[i]);
 		unregister_blkdev(major[i], name);
 	}
+#endif
 	return 0;
 }
 

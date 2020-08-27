@@ -47,7 +47,7 @@ static int kpro_init(void)
 	printk("insv@%px = 0x%lx (after registered)\n", addr, *addr);
 
 	/* allocate a workqueue after the kprobe is registered */
-	g_pwq = alloc_workqueue("Kprobe test", 0, 1);
+	g_pwq = alloc_workqueue("!!!Kprobe Test Workqueue", 0, 1);
 	printk(KERN_INFO "registed kprobe @0x%px\n", kp.addr);
 
 	return 0;

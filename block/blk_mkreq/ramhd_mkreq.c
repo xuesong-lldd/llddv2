@@ -23,8 +23,8 @@
 #define RAMHD_MAX_PARTITIONS    4
 
 #define RAMHD_SECTOR_SIZE       512
-#define RAMHD_SECTORS           32
-#define RAMHD_HEADS             4
+#define RAMHD_SECTORS           64
+#define RAMHD_HEADS             16
 #define RAMHD_CYLINDERS         512
 
 #define RAMHD_SECTOR_TOTAL      (RAMHD_SECTORS * RAMHD_HEADS * RAMHD_CYLINDERS)

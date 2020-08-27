@@ -1,0 +1,4 @@
+This is demo is the post kprobe for load_module(), the kp is inserted into 
+the load_module+76, where we change the r13 to a wrong value order to make
+the elf_header_check() failed, so the entire load_module() will fail too, 
+thus 'insmod' will not succeed in case the probe is there...

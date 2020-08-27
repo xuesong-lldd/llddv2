@@ -9,6 +9,11 @@
 
 #include "../chrdev_ioctl_def.h"
 
+/*
+ * Generate the device file node manually:
+ * # mknod /dev/fa_dev c major minor
+ */
+
 #define DEVFILE	"/dev/fa_dev"
 
 int

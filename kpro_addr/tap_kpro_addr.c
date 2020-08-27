@@ -36,13 +36,11 @@ static int kpro_addr_init(void)
 	kp.pre_handler = handler_pre;
 
 	addr = (unsigned long *)kallsyms_lookup_name(kp.symbol_name);
-	printk("addr = %px, op_code = 0x%lx\n", addr, (unsigned long)*addr);
 	ret = register_kprobe(&kp);
 	if (ret < 0) {
 		printk(KERN_INFO "register_kprobe failed:%d\n", ret);
 		return ret;
 	}
-	printk("addr = %px, op_code = 0x%lx\n", addr, (unsigned long)*addr);
 	printk(KERN_INFO "registed kprobe @0x%px\n", kp.addr);
 	return 0;
 }
