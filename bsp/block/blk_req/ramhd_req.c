@@ -54,7 +54,7 @@ static const struct ramhd_of_plt_data bcm2711_ramdisk_data = {
 };
 
 static const struct of_device_id bcm2711_ramdisk_of_match[] = {
-	{ .compatible = "brcm,fake-ramdisk-dev", .data = &bcm2711_ramdisk_data },
+	{ .compatible = "brcm,bcm2711-ramdisk", .data = &bcm2711_ramdisk_data },
 	{ .compatible = "arm, armv8-ramdisk" },
 	{ }
 };
