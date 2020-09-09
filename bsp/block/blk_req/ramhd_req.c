@@ -214,7 +214,8 @@ static int ramhd_init(ramdisk_paras_t *rp)
 		rdev[i]->sector_sz = rp->sector_sz;
 		rdev[i]->gd = alloc_disk(RAMHD_MAX_PARTITIONS);
 		spin_lock_init(&rdev[i]->lock);
-		rdev[i]->queue = blk_mq_init_sq_queue(&tag_set[i], &rdev_mq_ops, 2,
+		/* setup a single hw queue and with queue_depth = 32 */
+		rdev[i]->queue = blk_mq_init_sq_queue(&tag_set[i], &rdev_mq_ops, 32,
 					BLK_MQ_F_SHOULD_MERGE);;
 		rdev[i]->gd->major = ramhd_major;
 		rdev[i]->gd->first_minor = i * RAMHD_MAX_PARTITIONS;
