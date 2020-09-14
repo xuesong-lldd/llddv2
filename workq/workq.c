@@ -39,7 +39,6 @@ static int workq_init(void)
 static void workq_exit(void)
 {
 	printk("--%s--\n", __func__);
-
 	cancel_work_sync(&g_wq_container->work);
 	destroy_workqueue(g_wq_container->wq);
 	kfree(g_wq_container);
