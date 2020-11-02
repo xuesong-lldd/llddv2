@@ -1,13 +1,13 @@
 CC=gcc
 CFLAGS=-g -O2
-TARGET = main
-OBJS = $(TARGET).o
 %.o:%.c
 	$(CC) -c -o $@ $< $(CFLAGS)
-$(TARGET): $(OBJS)
+all: epoll select
+epoll: epoll.o
 	$(CC) -o $@ $^ $(CFLAGS)
-
+select: select.o
+	$(CC) -o $@ $^ $(CFLAGS)
 .PHONY: clean
 
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f epoll select *.o
