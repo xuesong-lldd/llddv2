@@ -14,7 +14,9 @@ wq_container_t *g_wq_container;
 
 void demo_work_func(struct work_struct *work)
 {
-	pr_info("in the demo_work_func...\n");
+	pr_info("In the demo_work_func...[%s]\n", in_interrupt() ? "I" : "P");
+	pr_info("task = 0x%px@cpu%d\n", current, get_cpu());
+	put_cpu();
 }
 
 static int workq_init(void)
@@ -27,7 +29,7 @@ static int workq_init(void)
 	INIT_WORK(&g_wq_container->work, demo_work_func);
 	pr_info("preempt_count = %d\n", preempt_count());
 	cpu = get_cpu();
-	pr_info("preempt_count = %d, cpu = %d\n", preempt_count(), cpu);
+	pr_info("preempt_count = %d, task = 0x%px@cpu%d\n", preempt_count(), current, cpu);
 	queue_work_on(cpu, g_wq_container->wq, &g_wq_container->work);
 	put_cpu();
 	pr_info("preempt_count = %d\n", preempt_count());

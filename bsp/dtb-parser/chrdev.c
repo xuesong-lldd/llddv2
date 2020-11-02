@@ -236,7 +236,7 @@ static int parse_dtb_file(unsigned long arg)
 	int dtb_fd;
 	void *hdr;
 	loff_t size;
-	//struct fdt_header *fh;
+	struct fdt_header *fh;
 
 	copy_from_user(&dtb_fd, (int __user *)arg, sizeof(int));
 	pr_info("dtb_fd = %d\n", dtb_fd);
@@ -246,12 +246,12 @@ static int parse_dtb_file(unsigned long arg)
 		return ret;
 	}
 	pr_info("of_root = 0x%px\n", of_root);
-#if 0
+#if 1
 	fh = (struct fdt_header *)hdr;
 	pr_info("magic = 0x%x\n", be32_to_cpu(fh->magic));
 	pr_info("total size = %d\n", be32_to_cpu(fh->totalsize));
 #endif
-	dump_blob(hdr);
+	//dump_blob(hdr);
 
 	return ret;
 }
