@@ -8,7 +8,7 @@
 
 #define DEVFILE	"/dev/fa_dev"
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	int oflags, fd;
 	int epfd, nfds;
@@ -28,12 +28,24 @@ int main(void)
 	}
 
 	in_ev.data.fd = fd;
-	in_ev.events = EPOLLIN;
+	if (argc == 1) {
+		/* default is the level trigger mode */
+		printf("Level Trigger mode applied...\n");
+		in_ev.events = EPOLLIN;
+	} else {
+		/* one additional argument will set the mode as Edge Trigger(ET) */
+		printf("Edge Trigger mode applied...\n");
+		in_ev.events = EPOLLIN | EPOLLET;
+	}
 	epoll_ctl(epfd, EPOLL_CTL_ADD, in_ev.data.fd, &in_ev);
 
 	printf("begin to epoll_wait() @fd[%d]...\n", fd);
 	nfds = epoll_wait(epfd, &out_ev, 1, -1);
 	printf("nfds = %d, ready fd = %d, event type = %s\n", nfds, out_ev.data.fd, (out_ev.events & EPOLLIN) ? "READ" : "N/A"); 
+
+	/* demo of the edge or level trigger mode */
+	nfds = epoll_wait(epfd, &out_ev, 1, -1);
+	printf("nfds = %d, ready fd = %d, event type = %s\n", nfds, out_ev.data.fd, (out_ev.events & EPOLLIN) ? "READ" : "N/A");
 
 	close(epfd);
 	close(fd);
