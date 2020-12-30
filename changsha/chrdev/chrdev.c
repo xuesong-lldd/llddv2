@@ -37,10 +37,9 @@ static int chrdev_demo_init(void)
 	}
 
 	printk("{major, minor} = {%d, %d}\n", MAJOR(ndev), MINOR(ndev));
-
 	g_cdev = cdev_alloc();
-	cdev_init(g_cdev, &ops);
-	//g_cdev->ops = &ops;
+	//cdev_init(g_cdev, &ops);
+	g_cdev->ops = &ops;
 	g_cdev->owner = THIS_MODULE;
 	cdev_add(g_cdev, ndev, 1);
 
