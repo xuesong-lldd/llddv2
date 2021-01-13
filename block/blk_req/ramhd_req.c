@@ -18,6 +18,9 @@
 #include <linux/blk-mq.h>
 #include <asm/uaccess.h>
 
+#define CREATE_TRACE_POINTS
+#include "ramhd_req.h"
+
 #define RAMHD_NAME              "ramsd"
 #define RAMHD_MAX_DEVICE        1
 #define RAMHD_MAX_PARTITIONS    2
@@ -39,12 +42,21 @@ typedef struct{
 	struct gendisk  *gd;
 }RAMHD_DEV;
 
-static char *sdisk[RAMHD_MAX_DEVICE];
+char *sdisk[RAMHD_MAX_DEVICE];
+
+/* export the ramhd base block for use of ext4tap kmodule */
+char *get_ramhd_base(void)
+{
+	return sdisk[0];
+}
+EXPORT_SYMBOL_GPL(get_ramhd_base);
+
 static RAMHD_DEV *rdev[RAMHD_MAX_DEVICE];
 
 static dev_t ramhd_major;
 static void ramhd_space_clean(void);
 
+/* allocate the memory space as the disk backend storage */
 static int ramhd_space_init(void)
 {
 	int i;
@@ -55,6 +67,7 @@ static int ramhd_space_init(void)
 			err = -ENOMEM;
 			goto err_out;
 		}
+		pr_info("sdisk[%d] = 0x%px\n", i, sdisk[i]);
 		memset(sdisk[i], 0, RAMHD_SIZE);
 	}
 
@@ -182,6 +195,8 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 		size = bv.bv_len;
 		buffer = page_address(bv.bv_page) + bv.bv_offset;
 		printk("current seg[sector:%lld] buffer: 0x%px, size = %u@offset %u\n", bio->bi_iter.bi_sector, buffer, size, bv.bv_offset);
+		/* insert a TP here, pass the pointer of the data struct instead of the object (like 'bv') */
+		trace_ramhd_req_func(bio, &bv, buffer);
 		if ((unsigned long)buffer % RAMHD_SECTOR_SIZE) {
 			pr_err(RAMHD_NAME ": buffer %p not aligned\n", buffer);
 			return BLK_STS_IOERR;
