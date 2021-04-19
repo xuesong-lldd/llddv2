@@ -79,7 +79,7 @@ static int poll_demo_init(void)
 	printk("{major, minor} = {%d, %d}\n", MAJOR(ndev), MINOR(ndev));
 
 	g_cdev = cdev_alloc();
-	//cdev_init(g_cdev, &ops);
+	//cdev_init(g_cdev, &ops); /* for the dynamic cdev obj, don't use cdev_init() */
 	g_cdev->ops = &ops;
 	g_cdev->owner = THIS_MODULE;
 	cdev_add(g_cdev, ndev, 1);
@@ -120,4 +120,4 @@ module_init(poll_demo_init);
 module_exit(poll_demo_exit);
 
 MODULE_LICENSE("GPL");
-
+MODULE_AUTHOR("xuesong.cxs@outlook.com");
