@@ -19,23 +19,23 @@ static inline const char *get_machine_type(unsigned int type)
 {
 	const char *machine;
 	switch (type) {
-		case 40:
+	case 40:
 		machine = "arm";
 		break;
 
-		case 50:
+	case 50:
 		machine = "IA64";
 		break;
 
-		case 62:
+	case 62:
 		machine = "ECS AMD x86_64";
 		break;
 
-		case 183:
+	case 183:
 		machine = "arm64";
 		break;
 
-		default:
+	default:
 		machine = "unknown";
 	};
 
