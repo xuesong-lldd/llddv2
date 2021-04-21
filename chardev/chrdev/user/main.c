@@ -45,7 +45,7 @@ int main(void)
 		return -1;
 	}
 
-	printf("*p_mapped = 0x%lx\n", *p_mapped);
+	printf("p_mmapped = %p, *p_mapped = 0x%lx\n", p_mapped, *p_mapped);
 	munmap(p_mapped, pgsz);
 
 	close(fd);

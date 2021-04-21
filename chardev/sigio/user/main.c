@@ -31,7 +31,7 @@ int main(void)
 		return fd;
 	}
 
-	/* set fd's owner process */
+	/* set fd's owner process to receive the SIGIO signal */
 	fcntl(fd, F_SETOWN, getpid());
 	/* get old fd flags */
 	oflags = fcntl(fd, F_GETFL);
@@ -47,7 +47,7 @@ int main(void)
 	printf("Do everything you want until we get the SIGIO...\n");
 	printf("before signaled: *p_mapped = 0x%lx\n", *p_mapped);
 	while(g_flag);
-	printf("before signaled: *p_mapped = 0x%lx\n", *p_mapped);
+	printf("after signaled: *p_mapped = 0x%lx\n", *p_mapped);
 	munmap(p_mapped, pgsz);
 	close(fd);
 

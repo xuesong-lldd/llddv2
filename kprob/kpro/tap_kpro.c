@@ -69,4 +69,4 @@ module_init(kpro_init);
 module_exit(kpro_exit);
 
 MODULE_LICENSE("GPL");
-
+MODULE_AUTHOR("xuesong.cxs@outlook.com")
