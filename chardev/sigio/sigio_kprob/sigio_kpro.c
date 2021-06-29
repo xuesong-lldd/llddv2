@@ -35,7 +35,7 @@ static int handler_pre(struct kprobe *p, struct pt_regs *regs)
 		else
 			pr_info("pid is not null, but failed to get task\n");
 	} else
-		pr_info("pid is NULL\n");		
+		pr_info("pid is not set, so no SIGIO sent to it\n");
 	
 	return 0;
 }
@@ -44,7 +44,6 @@ static int sigio_kpro_init(void)
 {
 	int ret;
 
-	/* !!!! change this value according to the actual va of func in vmlinux */
 	pr_info("+%s\n", __func__);
 	kp.pre_handler = handler_pre;
 	ret = register_kprobe(&kp);

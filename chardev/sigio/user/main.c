@@ -18,6 +18,7 @@ static void sig_handler(int signum)
 int main(void)
 {
 	int oflags, fd, pgsz;
+	pid_t pid;
 	unsigned long *p_mapped;
 
 	pgsz = sysconf(_SC_PAGE_SIZE);
@@ -31,8 +32,14 @@ int main(void)
 		return fd;
 	}
 
-	/* set fd's owner process to receive the SIGIO signal */
-	fcntl(fd, F_SETOWN, getpid());
+	pid = getpid();
+	printf("%s: pid = %d\n", __func__, pid);
+	/*
+	 * set fd's owner process to receive the SIGIO signal, if we
+	 * comment out the fcntl(fd, F_SETOWN, getpid()), then the process
+	 * will not get the SIGIO signal...
+	 */
+	//fcntl(fd, F_SETOWN, pid);
 	/* get old fd flags */
 	oflags = fcntl(fd, F_GETFL);
 	/* set new fd flags */
