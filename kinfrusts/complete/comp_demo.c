@@ -2,6 +2,7 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
+#include <linux/sched/task_stack.h>
 
 struct completion *g_done;
 
@@ -9,6 +10,14 @@ struct completion *g_done;
 static int my_kthread_func(void *data)
 {
 	pr_info("+%s+\n", __func__);
+	/* check the magic of the end_of_stack */
+	if (*end_of_stack(current) != STACK_END_MAGIC) {
+		pr_err("corrupted kthread stack detected@0x%px\n", end_of_stack(current));
+		return -1;
+	} else
+		pr_info("magic@end_stack = 0x%lx@0x%px, stack size = 0x%lx\n",
+				*end_of_stack(current), end_of_stack(current), THREAD_SIZE);
+
 	pr_info("before mdelay\n");
 	mdelay(10);
 	pr_info("after mdelay\n");
