@@ -15,7 +15,7 @@ static int my_kthread_func(void *data)
 	while (1) {
 		if (kthread_should_stop())
 			break;
-		pr_info("%s: a = %d, cpu = %d\n", __func__, p->a, p->cpu_idx);
+		pr_info("%s: a = %d, cpu = %d, pid = %d\n", __func__, p->a, p->cpu_idx, current->pid);
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule();
 	}
