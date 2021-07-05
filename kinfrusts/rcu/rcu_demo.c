@@ -77,7 +77,7 @@ static int normal_kthread_func(void *data)
 
 	normal_rcu_read(g_shared_data);
 	while(time_before(jiffies, timeout))
-		count++;
+		count++; 
 	pr_info("normal count = %llu\n", count);
 
 	return 0;
@@ -96,7 +96,7 @@ static int fifo_kthread_func(void *data)
 	while(time_before(jiffies, timeout))
 		count++;
 	pr_info("fifo count = %llu\n", count);
-
+	
 	return 0;
 }
 /* this function has been a public GPL exported function in newer kernel version */
@@ -114,7 +114,6 @@ static int rcu_demo_init(void)
 	g_shared_data = kmalloc(sizeof(*g_shared_data), GFP_KERNEL);
 	g_shared_data->a = 100;
 	g_shared_data->b = 200;
-
 	printk("++%s++\n", __func__);
 	p0 = kthread_create(normal_kthread_func, NULL, "normal_kthead");
 	if (IS_ERR(p0)) {
