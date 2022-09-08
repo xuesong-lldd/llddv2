@@ -12,6 +12,8 @@
  * A different output will get if we comment out the sched_set_fifo(p1) in the code... 
  */
 
+#defince RT_CORE_0	0
+
 /* normal kthread func */
 static int normal_kthread_func(void *data)
 {	
@@ -41,12 +43,15 @@ static int fifo_kthread_func(void *data)
 	
 	return 0;
 }
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,10,0)
 /* this function has been a public GPL exported function in newer kernel version */
 static void sched_set_fifo(struct task_struct *p)
 {
 	struct sched_param sp = { .sched_priority = MAX_RT_PRIO / 2 };
 	WARN_ON_ONCE(sched_setscheduler_nocheck(p, SCHED_FIFO, &sp) != 0);
 }
+#endif
 
 static int rt_demo_init(void)
 {
@@ -60,7 +65,7 @@ static int rt_demo_init(void)
 		return ret;
 	}
 	/* bind the new kthread to the same processor */	
-	kthread_bind(p0, smp_processor_id());
+	kthread_bind(p0, RT_CORE_0);
 	p1 = kthread_create(fifo_kthread_func, NULL, "fifo_kthead");
 	if (IS_ERR(p1)) {
 		ret = PTR_ERR(p1);
@@ -68,7 +73,7 @@ static int rt_demo_init(void)
 		return ret;
 	}
 	/* bind the same processor avoid to dispatch it to a different cpu */
-	kthread_bind(p1, smp_processor_id());
+	kthread_bind(p1, RT_CORE_0);
 	sched_set_fifo(p1);
 	wake_up_process(p0);
 	/* delay to make normal kthread more graceful to enqueue the rq */
