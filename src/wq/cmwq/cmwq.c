@@ -32,18 +32,18 @@ void work0_func(struct work_struct *work)
 	int cpu = smp_processor_id();
 	unsigned long timeout;
 
-	pr_info("w0:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w0:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
 	timeout = jiffies + msecs_to_jiffies(5);
 	/* burns cpu for 5ms */
 	while(time_before(jiffies, timeout));
-	pr_info("w0:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w0:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
 	/* sleep for 10ms */
 	schedule_timeout_interruptible(msecs_to_jiffies(10));
-	pr_info("w0:jiffies1@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w0:jiffies1@cpu#%d = %lu\n", cpu, jiffies);
 	/* burns cpu for 5ms again */
 	timeout = jiffies + msecs_to_jiffies(5);
 	while(time_before(jiffies, timeout));
-	pr_info("w0:jiffies1@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w0:jiffies1@cpu#%d = %lu\n", cpu, jiffies);
 }
 
 /* work->func */
@@ -52,14 +52,14 @@ void work1_func(struct work_struct *work)
 	int cpu = smp_processor_id();
 	unsigned long timeout;
 
-	pr_info("w1:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w1:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
 	timeout = jiffies + msecs_to_jiffies(5);
 	/* burns cpu for 5ms */
 	while(time_before(jiffies, timeout));
-	pr_info("w1:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w1:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
 	/* sleep for 10ms */
 	schedule_timeout_interruptible(msecs_to_jiffies(10));
-	pr_info("w1:jiffies1@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w1:jiffies1@cpu#%d = %lu\n", cpu, jiffies);
 }
 
 /* work->func */
@@ -68,19 +68,64 @@ void work2_func(struct work_struct *work)
 	int cpu = smp_processor_id();
 	unsigned long timeout;
 
-	pr_info("w2:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w2:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
 	timeout = jiffies + msecs_to_jiffies(5);
 	/* burns cpu for 5ms */
 	while(time_before(jiffies, timeout));
-	pr_info("w2:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w2:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
 	/* sleep for 10ms */
 	schedule_timeout_interruptible(msecs_to_jiffies(10));
-	pr_info("w2:jiffies1@cpu#%d = %lu\n", cpu, jiffies);
+	pr_info(" w2:jiffies1@cpu#%d = %lu\n", cpu, jiffies);
 }
 
+/* works with sleep work->func, will be queued into wq0 */
 static DECLARE_WORK(w0, work0_func);
 static DECLARE_WORK(w1, work1_func);
 static DECLARE_WORK(w2, work2_func);
+
+/* rwork->func */
+void rwork0_func(struct work_struct *work)
+{
+	int cpu = smp_processor_id();
+	unsigned long timeout;
+
+	pr_info("rw0:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	timeout = jiffies + msecs_to_jiffies(60000);
+	/* burns cpu for 1-min */
+	while(time_before(jiffies, timeout));
+	pr_info("rw0:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+}
+
+/* rwork->func */
+void rwork1_func(struct work_struct *work)
+{
+	int cpu = smp_processor_id();
+	unsigned long timeout;
+
+	pr_info("rw1:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	timeout = jiffies + msecs_to_jiffies(20);
+	/* burns cpu for 20ms */
+	while(time_before(jiffies, timeout));
+	pr_info("rw1:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+}
+
+/* rwork->func */
+void rwork2_func(struct work_struct *work)
+{
+	int cpu = smp_processor_id();
+	unsigned long timeout;
+
+	pr_info("rw2:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+	timeout = jiffies + msecs_to_jiffies(30);
+	/* burns cpu for 30ms */
+	while(time_before(jiffies, timeout));
+	pr_info("rw2:jiffies0@cpu#%d = %lu\n", cpu, jiffies);
+}
+
+/* works always burns the cpu w/o sleep, will be queued into wq1 */
+static DECLARE_WORK(rw0, rwork0_func);
+static DECLARE_WORK(rw1, rwork1_func);
+static DECLARE_WORK(rw2, rwork2_func);
 
 static int cmwq_init(void)
 {
@@ -88,15 +133,22 @@ static int cmwq_init(void)
 	pr_info("1 jiffies = %u(ms)\n", jiffies_to_msecs(1));
 	/* to trigger the init_pwq(...) */
 	wq0 = alloc_workqueue("percpu_wq0", 0, MAX_ACTIVE_WORKS);
-	wq1 = alloc_workqueue("percpu_wq1", 0, 0);
+	wq1 = alloc_workqueue("percpu_wq1", 0, 64);
 	if (!wq0 || !wq1) {
 		pr_err("alloc_workqueue failed\n");
 		return -1;
 	}
 
 	queue_work_on(1, wq0, &w0);
-	queue_work_on(1, wq0, &w1);
+	queue_work_on(1, wq0, &w0);
 	queue_work_on(1, wq0, &w2);
+
+	/* wait 500ms for all the works in wq0 complete to make the output clear */
+	schedule_timeout_interruptible(msecs_to_jiffies(500));
+	pr_info("always-run workqueue begins...\n");
+	queue_work_on(2, wq1, &rw0);
+	queue_work_on(2, wq1, &rw1);
+	queue_work_on(2, wq1, &rw2);
 
 	return 0;
 }
