@@ -58,12 +58,23 @@ static void work2_func(struct work_struct *work)
 /* work->func */
 static void work3_func(struct work_struct *work)
 {
+	unsigned long data;
 	int cpu = raw_smp_processor_id();
 	pr_info("+%s scheduled@cpu#%d\n", __func__, cpu);
 	set_bit(WORK_IS_SLEEPING, &g_work_state);
 	pr_info("+%s begin to sleep 3s\n", __func__);
 	schedule_timeout_interruptible(msecs_to_jiffies(3000));
 	pr_info("+%s sleep completes\n", __func__);
+	/* current work is being canceled, let's check its state */
+	data = atomic_long_read(&work->data);
+	if (data & WORK_OFFQ_CANCELING)
+		pr_info("work is canceling...\n");
+	if (data & WORK_STRUCT_PENDING)
+		pr_info("work is in pending...\n");
+	/* work re-queues itself, but if the work is in canceling and pending
+	 * state, then the below queue_work_on(...) will return directly
+	 */
+	queue_work_on(1, wq0, &w3);
 }
 
 static int cancel_init(void)
@@ -95,12 +106,15 @@ static int cancel_init(void)
 	ret = cancel_work(&w2);
 	pr_info("cancel a completed work_2: %s\n", ret ? "true" : "false");
 
-	/* cancel_work_sync a 3s sleeping work */
+	/* cancel_work_sync(...) try to cancel a work that wants to re-queues
+	 * itself, but since the current work is marked as canceling and pending,
+	 * so the 2nd queue_work_on(...) will return directly
+	 */
 	queue_work_on(1, wq0, &w3);
 	while (!test_bit(WORK_IS_SLEEPING, &g_work_state));
-	pr_info("Begin to sync cancel a 3s sleeping work_3...\n");
+	pr_info("Begin to sync cancel a 3s + 3s sleeping works...\n");
 	ret = cancel_work_sync(&w3);
-	pr_info("sync cancel a sleeping work_3: %s\n", ret ? "true" : "false");
+	pr_info("sync cancel a sleeping work: %s\n", ret ? "true" : "false");
 
 	return 0;
 }
