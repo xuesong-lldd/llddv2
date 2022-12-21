@@ -1,9 +1,6 @@
-obj-m := ramhd_mq.o
+obj-m := ramhd_sq.o
 KERNELDIR := /lib/modules/$(shell uname -r)/build
-#KERNELDIR := /home/dennis/embedded/raspi4b/linux
 PWD := $(shell pwd)
-
-CFLAGS_ramhd_mq.o = -I$(src)
 
 default:
 	$(MAKE)  -C $(KERNELDIR) M=$(PWD) modules

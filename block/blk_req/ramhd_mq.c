@@ -1,5 +1,5 @@
 /*
- * #insmod ramhd_req.ko
+ * #insmod ramhd_mq.ko
  * #fdisk /dev/ramsda
  * #mkfs.ext4 /dev/ramsda1
  * #mount /dev/ramsda1 /mnt
@@ -19,7 +19,7 @@
 #include <asm/uaccess.h>
 
 #define CREATE_TRACE_POINTS
-#include "ramhd_req.h"
+#include "ramhd_mq.h"
 
 #define RAMHD_NAME              "ramsd"
 #define RAMHD_MAX_DEVICE        1
@@ -29,11 +29,10 @@
 
 #define RAMHD_SECTORS           64
 #define RAMHD_HEADS             8
-#define RAMHD_CYLINDERS         512
+#define RAMHD_CYLINDERS         128
 
 #define RAMHD_SECTOR_TOTAL      (RAMHD_SECTORS * RAMHD_HEADS * RAMHD_CYLINDERS)
-#define RAMHD_SIZE              (RAMHD_SECTOR_SIZE * RAMHD_SECTOR_TOTAL) /* 128-MB */
-
+#define RAMHD_SIZE              (RAMHD_SECTOR_SIZE * RAMHD_SECTOR_TOTAL) /* 32-MB */
 
 typedef struct{
 	char   *data;
@@ -64,6 +63,7 @@ static int ramhd_space_init(void)
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++){
 		sdisk[i] = vmalloc(RAMHD_SIZE);
 		if(!sdisk[i]){
+			pr_err("%s vmalloc[%d] failed\n", __func__, i);
 			err = -ENOMEM;
 			goto err_out;
 		}
@@ -121,18 +121,16 @@ static int ramhd_ioctl(struct block_device *bdev, fmode_t mode, unsigned int cmd
 {
 	struct hd_geometry geo;
 
-	switch(cmd)
-	{
-		case HDIO_GETGEO:
+	switch(cmd) {
+	case HDIO_GETGEO:
+		geo.cylinders = RAMHD_CYLINDERS;
+		geo.heads = RAMHD_HEADS;
+		geo.sectors = RAMHD_SECTORS;
+		geo.start = get_start_sect(bdev);
+		if(copy_to_user((void *)arg, &geo, sizeof(geo)))
+			return -EFAULT;
 
-			geo.cylinders = RAMHD_CYLINDERS;
-			geo.heads = RAMHD_HEADS;
-			geo.sectors = RAMHD_SECTORS;
-			geo.start = get_start_sect(bdev);
-			if(copy_to_user((void *)arg, &geo, sizeof(geo)))
-				return -EFAULT;
-
-			return 0;
+		return 0;
 	}
 
 	return -ENOTTY;
@@ -148,27 +146,6 @@ static struct block_device_operations ramhd_fops =
 static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 				const struct blk_mq_queue_data *bd)
 {
-/*
-	struct request *req;
-	RAMHD_DEV *pdev;
-	char *pData;
-	unsigned long addr, size, start;
-	req = bd->rq;
-	while (req) {
-		start = blk_rq_pos(req); // The sector cursor of the current request
-		pdev = (RAMHD_DEV *)req->rq_disk->private_data;
-		pData = pdev->data;
-		addr = (unsigned long)pData + start * RAMHD_SECTOR_SIZE;
-		size = blk_rq_cur_bytes(req);
-		if (rq_data_dir(req) == READ)
-			memcpy(req->buffer, (char *)addr, size);
-		else
-			memcpy((char *)addr, req->buffer, size);
-
-		if(!__blk_end_request_cur(req, 0))
-			req = blk_fetch_request(q);
-	}
-*/
 	RAMHD_DEV *pdev;
 	struct bio_vec bv;
 	struct req_iterator iter;
@@ -178,7 +155,7 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 	unsigned long start = blk_rq_pos(req); /* The start sector of the current request */
 	unsigned int size;
 	
-	pdev = (RAMHD_DEV *)req->rq_disk->private_data;
+	pdev = (RAMHD_DEV *)req->q->disk->private_data;
 	pData = pdev->data;
 
 	addr = pData + start * RAMHD_SECTOR_SIZE;
@@ -210,6 +187,7 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 		addr += size;
 	}
 	blk_mq_end_request(req, BLK_STS_OK);
+	
 	return BLK_STS_OK;
 }
 
@@ -218,43 +196,69 @@ static const struct blk_mq_ops rdev_mq_ops = {
 	.queue_rq = ramhd_req_func,
 };
 
-int ramhd_init(void)
+static int __init ramhd_init(void)
 {
-	int i;
-	ramhd_space_init();
-	alloc_ramdev();
+	int i, error = 0;
+	error = ramhd_space_init();
+	if (error)
+		goto err_out;
+
+	error = alloc_ramdev();
+	if (error)
+		goto err_out;
 
 	ramhd_major = register_blkdev(0, RAMHD_NAME);
+	if (ramhd_major < 0) {
+		pr_err("register_blkdev failed: %d\n", error);
+		goto err_out;
+	}
 
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++)
 	{
 		rdev[i]->data = sdisk[i]; 
-		rdev[i]->gd = alloc_disk(RAMHD_MAX_PARTITIONS);
+
 		spin_lock_init(&rdev[i]->lock);
 		/* setup a single hw queue and with queue_depth = 32 */
-		rdev[i]->queue = blk_mq_init_sq_queue(&tag_set[i], &rdev_mq_ops, 32,
-					BLK_MQ_F_SHOULD_MERGE);;
-		rdev[i]->gd->major = ramhd_major;
-		rdev[i]->gd->first_minor = i * RAMHD_MAX_PARTITIONS;
+		tag_set[i].ops = &rdev_mq_ops;
+		tag_set[i].nr_hw_queues = 1;
+		tag_set[i].nr_maps = 1;
+		tag_set[i].queue_depth = 32;
+		tag_set[i].numa_node = NUMA_NO_NODE;
+		tag_set[i].flags = BLK_MQ_F_SHOULD_MERGE;
+		error = blk_mq_alloc_tag_set(&tag_set[i]);
+		if (error) {
+			pr_err("blk_mq_alloc_sq_tag_set failed: %d\n", error);
+			goto err_out;
+		}
+
+		rdev[i]->gd = blk_mq_alloc_disk(&tag_set[i], NULL);
+		if (!rdev[i]->gd) {
+			pr_err("blk_mq_alloc_disk failed\n");
+			error = -1;
+			goto err_out;
+		}
 		rdev[i]->gd->fops = &ramhd_fops;
-		rdev[i]->gd->queue = rdev[i]->queue;
 		rdev[i]->gd->private_data = rdev[i];
 		sprintf(rdev[i]->gd->disk_name, "ramsd%c", 'a' + i);
 		set_capacity(rdev[i]->gd, RAMHD_SECTOR_TOTAL);
-		add_disk(rdev[i]->gd);
+		error = add_disk(rdev[i]->gd);
+		if (error)
+			put_disk(rdev[i]->gd);
 	}
 
-	return 0;
+	return error;
+
+err_out:
+	return error;
 }
 
-void ramhd_exit(void)
+static void __exit ramhd_exit(void)
 {
 	int i;
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++)
 	{
 		del_gendisk(rdev[i]->gd);
 		put_disk(rdev[i]->gd);     
-		blk_cleanup_queue(rdev[i]->queue);  
 		blk_mq_free_tag_set(&tag_set[i]);
 	}
 	unregister_blkdev(ramhd_major,RAMHD_NAME);  
@@ -268,4 +272,3 @@ module_exit(ramhd_exit);
 MODULE_AUTHOR("dennis chen @ AMDLinuxFGL");
 MODULE_DESCRIPTION("The ramdisk implementation with request function; Adapt to the new mq framework on Aug.12, 2020");
 MODULE_LICENSE("GPL");
-

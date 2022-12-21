@@ -6,7 +6,7 @@
 
 #include <linux/tracepoint.h>
 
-TRACE_EVENT(ramhd_req_func,
+TRACE_EVENT(ramhd_mq_func,
 	/* all the data struct parameter is in form of pointer instead of object */
 	TP_PROTO(struct bio *bio, struct bio_vec *bv, char *buffer),
 
@@ -36,6 +36,6 @@ TRACE_EVENT(ramhd_req_func,
 #undef TRACE_INCLUDE_PATH
 #undef TRACE_INCLUDE_FILE
 #define TRACE_INCLUDE_PATH .
-#define TRACE_INCLUDE_FILE ramhd_req
+#define TRACE_INCLUDE_FILE ramhd_mq
 
 #include <trace/define_trace.h>	
