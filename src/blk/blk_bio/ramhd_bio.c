@@ -1,5 +1,6 @@
 /*
- * A very simple ram-based block device:
+ * A simple bio-based block device, RAM as the underlying storage
+ * device.
  * Usage:
  * 1. fdisk /dev/ramhda
  * 2. mkfs.ext4 /dev/ramhda1
@@ -39,11 +40,11 @@ typedef struct{
 static char *sdisk[RAMHD_MAX_DEVICE] = {NULL,};
 static RAMHD_DEV *rdev[RAMHD_MAX_DEVICE] = {NULL,};
 
-static dev_t ramhd_sq_major;
+static dev_t ramhd_bio_major;
 
-static void __ramhd_sq_make_request(struct bio *bio);
+static void __ramhd_bio_make_request(struct bio *bio);
 
-static int ramhd_sq_space_init(void)
+static int ramhd_bio_space_init(void)
 {
 	int i;
 	int err = 0;
@@ -60,7 +61,7 @@ static int ramhd_sq_space_init(void)
 	return err;
 }
 
-static void ramhd_sq_space_clean(void)
+static void ramhd_bio_space_clean(void)
 {
 	int i;
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++){
@@ -68,12 +69,12 @@ static void ramhd_sq_space_clean(void)
 	}
 }
 
-static int ramhd_sq_open(struct block_device *bdev, fmode_t mode)
+static int ramhd_bio_open(struct block_device *bdev, fmode_t mode)
 {
 	return 0;
 }
 
-static int ramhd_sq_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd, unsigned long arg)
+static int ramhd_bio_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd, unsigned long arg)
 {
 	struct hd_geometry geo;
 
@@ -92,20 +93,20 @@ static int ramhd_sq_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd,
 	return -ENOTTY;
 }
 
-static void ramhd_sq_submit_bio(struct bio *bio)
+static void ramhd_bio_submit_bio(struct bio *bio)
 {
-	__ramhd_sq_make_request(bio);
+	__ramhd_bio_make_request(bio);
 }
 
-static struct block_device_operations ramhd_sq_fops =
+static struct block_device_operations ramhd_bio_fops =
 {
 	.owner = THIS_MODULE,
-	.open = ramhd_sq_open,
-	.submit_bio = ramhd_sq_submit_bio,
-	.ioctl = ramhd_sq_ioctl,
+	.open = ramhd_bio_open,
+	.submit_bio = ramhd_bio_submit_bio,
+	.ioctl = ramhd_bio_ioctl,
 };
 
-static void __ramhd_sq_make_request(struct bio *bio)
+static void __ramhd_bio_make_request(struct bio *bio)
 {
 	char *pRHdata;
 	void *pBuffer;
@@ -165,24 +166,27 @@ static void clean_ramdev(void)
 	}   
 }       
 
-static int __init ramhd_sq_init(void)
+static int __init ramhd_bio_init(void)
 {
 	int i;
 	int err;
+	struct request_queue *rq;
 
-	err = ramhd_sq_space_init();
+	err = ramhd_bio_space_init();
 	if(err)
 		return err;
 
 	alloc_ramdev();
 
-	ramhd_sq_major = register_blkdev(0, RAMHD_NAME);
+	ramhd_bio_major = register_blkdev(0, RAMHD_NAME);
 
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++) {  
 		rdev[i]->data = sdisk[i];
 		rdev[i]->gd = blk_alloc_disk(NUMA_NO_NODE);
 		BUG_ON(!rdev[i]->gd);
-		rdev[i]->gd->fops = &ramhd_sq_fops;
+		rq = rdev[i]->gd->queue;
+		rq->nr_requests = 64;
+		rdev[i]->gd->fops = &ramhd_bio_fops;
 		rdev[i]->gd->private_data = rdev[i];
 		sprintf(rdev[i]->gd->disk_name, "ramhd%c", 'a'+i);
 		set_capacity(rdev[i]->gd, RAMHD_SECTOR_TOTAL);
@@ -197,7 +201,7 @@ static int __init ramhd_sq_init(void)
 	return 0;
 }
 
-static void __exit ramhd_sq_exit(void)
+static void __exit ramhd_bio_exit(void)
 {
 	int i;
 
@@ -205,15 +209,15 @@ static void __exit ramhd_sq_exit(void)
 		del_gendisk(rdev[i]->gd);
 		put_disk(rdev[i]->gd);
 	} 
-	unregister_blkdev(ramhd_sq_major,RAMHD_NAME);
+	unregister_blkdev(ramhd_bio_major,RAMHD_NAME);
 	clean_ramdev();
-	ramhd_sq_space_clean();   
+	ramhd_bio_space_clean();   
 }
 
-module_init(ramhd_sq_init);
-module_exit(ramhd_sq_exit);
+module_init(ramhd_bio_init);
+module_exit(ramhd_bio_exit);
 
-MODULE_AUTHOR("dennis chen @AMDLinuxFGL");
-MODULE_DESCRIPTION("The ramdisk implementation with single queue");
+MODULE_AUTHOR("xuesong.cxs@outlook.com");
+MODULE_DESCRIPTION("The bio-based ramdisk driver");
 MODULE_LICENSE("GPL");
 

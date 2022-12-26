@@ -1,4 +1,4 @@
-obj-m := ramhd_sq.o
+obj-m := ramhd_bio.o
 KERNELDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
