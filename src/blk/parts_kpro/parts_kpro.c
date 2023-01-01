@@ -13,6 +13,23 @@
 
 #define x86_64
 
+static void dump_disk_parts(struct gendisk *disk, int partno)
+{
+	int i;
+	struct block_device *part = NULL;
+	struct device *pdev;
+
+	for (i = 0; i <= partno; i++) {
+		part = xa_load(&disk->part_tbl, i);
+		if (part) {
+			pdev = &part->bd_device;
+			pr_info("%s@%px: s_sector = %llu, nr_sectors = %llu\n", dev_name(pdev),
+			part->bd_disk, part->bd_start_sect, part->bd_nr_sectors);
+		} else
+			pr_info("partition#%d is not available\n", i);
+	}
+}
+
 static int kp_handler_pre(struct kprobe *p, struct pt_regs *regs);
 
 static struct kprobe kp = {
@@ -50,6 +67,8 @@ static int kp_handler_pre(struct kprobe *p, struct pt_regs *regs)
         pr_info("+%s+\n", __func__);
 	pr_info("gendisk = 0x%px, partno = %d, start_sec = %llu, nr_sectors = %llu\n",
 		disk, partno, start, nr_sectors);
+
+	dump_disk_parts(disk, partno);
 
 	return 0;
 }
