@@ -19,6 +19,9 @@
 #include <linux/hdreg.h>
 #include <linux/blk_types.h>
 
+/* uncomment below line to use bio_for_each_bvec() instead */
+/* #define PER_BVEC */
+
 #define RAMHD_NAME              "ramhd"
 #define RAMHD_MAX_DEVICE        2
 #define RAMHD_MAX_PARTITIONS    4
@@ -118,8 +121,11 @@ static void __ramhd_bio_make_request(struct bio *bio)
 		goto io_error;
 
 	pRHdata = pdev->data + (bio->bi_iter.bi_sector * RAMHD_SECTOR_SIZE);
-
+#if defined(PER_BVEC)
+	bio_for_each_bvec(bvec, bio, iter) {
+#else
 	bio_for_each_segment(bvec, bio, iter) {
+#endif
 		pBuffer = kmap_atomic(bvec.bv_page) + bvec.bv_offset;
 		switch(bio_data_dir(bio))
 		{
@@ -138,7 +144,6 @@ static void __ramhd_bio_make_request(struct bio *bio)
 		kunmap_atomic(pBuffer);
 		pRHdata += bvec.bv_len;
 	}
-
 	bio_endio(bio);
 	return;
 io_error:
