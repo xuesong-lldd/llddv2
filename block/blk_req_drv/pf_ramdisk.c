@@ -3,6 +3,8 @@
  * #fdisk /dev/ramsda
  * #mkfs.ext4 /dev/ramsda1
  * #mount /dev/ramsda1 /mnt
+ *
+ * Adapt the raw kernel module into a platform device driver on Dec.12, 2023
  */
 
 #include <linux/module.h>
@@ -16,10 +18,13 @@
 #include <linux/blkdev.h>
 #include <linux/hdreg.h>
 #include <linux/blk-mq.h>
+#include <linux/platform_device.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
 #include <asm/uaccess.h>
 
-#define CREATE_TRACE_POINTS
-#include "ramhd_mq.h"
+//#define CREATE_TRACE_POINTS
+//#include "pf_ramdisk.h"
 
 #define RAMHD_NAME              "ramsd"
 #define RAMHD_MAX_DEVICE        1
@@ -42,6 +47,12 @@ typedef struct{
 }RAMHD_DEV;
 
 char *sdisk[RAMHD_MAX_DEVICE];
+
+static const struct of_device_id pf_ramdisk_dt_match[] = {
+    { .compatible = "brcm,bcm2711-ramdisk", NULL },
+    { .compatible = "arm,armv8-ramdisk", NULL },
+    {}
+};
 
 /* export the ramhd base block for use of ext4tap kmodule */
 char *get_ramhd_base(void)
@@ -173,7 +184,7 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 		buffer = page_address(bv.bv_page) + bv.bv_offset;
 		printk("current seg[sector:%lld] buffer: 0x%px, size = %u@offset %u\n", bio->bi_iter.bi_sector, buffer, size, bv.bv_offset);
 		/* insert a TP here, pass the pointer of the data struct instead of the object (like 'bv') */
-		trace_ramhd_req_func(bio, &bv, buffer);
+		//trace_ramhd_req_func(bio, &bv, buffer);
 		if ((unsigned long)buffer % RAMHD_SECTOR_SIZE) {
 			pr_err(RAMHD_NAME ": buffer %p not aligned\n", buffer);
 			return BLK_STS_IOERR;
@@ -196,9 +207,11 @@ static const struct blk_mq_ops rdev_mq_ops = {
 	.queue_rq = ramhd_req_func,
 };
 
-static int __init ramhd_init(void)
+static int pf_ramdisk_probe(struct platform_device *pdev)
 {
 	int i, error = 0;
+
+    dev_info(&pdev->dev, "+pf_ramdisk_probe+\n");
 	error = ramhd_space_init();
 	if (error)
 		goto err_out;
@@ -252,11 +265,12 @@ err_out:
 	return error;
 }
 
-static void __exit ramhd_exit(void)
+static int pf_ramdisk_remove(struct platform_device *pdev)
 {
 	int i;
-	for(i = 0; i < RAMHD_MAX_DEVICE; i++)
-	{
+
+    dev_info(&pdev->dev, "+pf_ramdisk_remove+\n");
+	for(i = 0; i < RAMHD_MAX_DEVICE; i++) {
 		del_gendisk(rdev[i]->gd);
 		put_disk(rdev[i]->gd);     
 		blk_mq_free_tag_set(&tag_set[i]);
@@ -264,11 +278,21 @@ static void __exit ramhd_exit(void)
 	unregister_blkdev(ramhd_major,RAMHD_NAME);  
 	clean_ramdev();
 	ramhd_space_clean();  
+    return 0;
 }
 
-module_init(ramhd_init);
-module_exit(ramhd_exit);
+static struct platform_driver pf_ramdisk_driver = {
+    .driver = {
+        .name = "pf-ramdisk",
+        .probe_type = PROBE_PREFER_ASYNCHRONOUS,
+        .of_match_table = pf_ramdisk_dt_match,
+    },
+    .probe = pf_ramdisk_probe,
+    .remove = pf_ramdisk_remove,
+};
 
-MODULE_AUTHOR("dennis chen @ AMDLinuxFGL");
-MODULE_DESCRIPTION("The ramdisk implementation with request function; Adapt to the new mq framework on Aug.12, 2020");
+module_platform_driver(pf_ramdisk_driver);
+
+MODULE_AUTHOR("xuesong.cxs@outlook.com");
+MODULE_DESCRIPTION("Re-impl it in form of platform driver on Dec.12, 2023; Adapt to the new mq framework on Aug.12, 2020");
 MODULE_LICENSE("GPL");

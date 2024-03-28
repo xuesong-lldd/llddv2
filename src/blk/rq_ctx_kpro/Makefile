@@ -1,5 +1,5 @@
-obj-m := tap_pstate.o
-KERNELDIR := /home/xuesong/linux/raspberrypi/target/kbld
+obj-m := parts_kpro.o
+KERNELDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
 default:

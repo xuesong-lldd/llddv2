@@ -1,5 +1,5 @@
-obj-m := tap_pstate.o
-KERNELDIR := /home/xuesong/linux/raspberrypi/target/kbld
+obj-m := led_demo.o
+KERNELDIR := /home/xuesong/linux/raspberrypi/target/kbld 
 PWD := $(shell pwd)
 
 default:

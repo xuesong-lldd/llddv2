@@ -46,15 +46,15 @@ static __poll_t fa_poll(struct file *filp, struct poll_table_struct *pt)
 {
 	__poll_t mask = 0;
 	
-	poll_wait(filp, &fa_poll_waitq, pt);
-
 	/* 
 	 * g_flag = 0: no data available for read 
 	 * g_flag > 0: data is available for read
 	 */
 	if (g_flag > 0) {
 		mask |= EPOLLIN;
-	}
+	} else if (g_flag == 0) {
+        poll_wait(filp, &fa_poll_waitq, pt);
+    }
 
 	return mask;	
 }
