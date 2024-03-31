@@ -1,0 +1,19 @@
+diff --git a/arch/arm/boot/dts/bcm2711-rpi-4-b.dts b/arch/arm/boot/dts/bcm2711-rpi-4-b.dts
+index de2e70011f18..91f2f75de465 100644
+--- a/arch/arm/boot/dts/bcm2711-rpi-4-b.dts
++++ b/arch/arm/boot/dts/bcm2711-rpi-4-b.dts
+@@ -33,6 +33,14 @@ led-pwr {
+ 		};
+ 	};
+ 
++	ramdisk {
++		compatible = "brcm,bcm2711-ramdisk";
++		sector_sz = <0x200>;
++		heads = <8>;
++		interrupts = <0 150 4>;
++		interrupt-names = "ramdisk";
++	};
++
+ 	sd_io_1v8_reg: sd_io_1v8_reg {
+ 		compatible = "regulator-gpio";
+ 		regulator-name = "vdd-sd-io";

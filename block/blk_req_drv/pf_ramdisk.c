@@ -207,11 +207,18 @@ static const struct blk_mq_ops rdev_mq_ops = {
 	.queue_rq = ramhd_req_func,
 };
 
+int irq;
+
+static irqreturn_t ramdisk_interrupt(int irq, void *dev_id)
+{
+	return IRQ_HANDLED;
+}
+
 static int pf_ramdisk_probe(struct platform_device *pdev)
 {
-	int i, error = 0;
+	int i, error = 0, ret;
+	dev_info(&pdev->dev, "+pf_ramdisk_probe+\n");
 
-    dev_info(&pdev->dev, "+pf_ramdisk_probe+\n");
 	error = ramhd_space_init();
 	if (error)
 		goto err_out;
@@ -224,6 +231,21 @@ static int pf_ramdisk_probe(struct platform_device *pdev)
 	if (ramhd_major < 0) {
 		pr_err("register_blkdev failed: %d\n", error);
 		goto err_out;
+	}
+
+	/* get the irq for demo purpose only. This will create a foler under /sys/kernel/irq */
+	irq = platform_get_irq(pdev, 0);
+	if (irq < 0) {
+		pr_err("get irq failed:%d\n", irq);
+		goto err_out;
+	} else {
+		pr_info("ramdisk irq = %d\n", irq);
+		ret = request_irq(irq, ramdisk_interrupt, 0, "rd irq", NULL);
+		if (ret) {
+			pr_err("IRQ %d is not free\n", irq);
+			goto err_out;
+		}
+		pr_info("request irq(%d) succeeds\n", irq);
 	}
 
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++)
@@ -269,12 +291,13 @@ static int pf_ramdisk_remove(struct platform_device *pdev)
 {
 	int i;
 
-    dev_info(&pdev->dev, "+pf_ramdisk_remove+\n");
+	dev_info(&pdev->dev, "+pf_ramdisk_remove+\n");
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++) {
 		del_gendisk(rdev[i]->gd);
 		put_disk(rdev[i]->gd);     
 		blk_mq_free_tag_set(&tag_set[i]);
 	}
+	if (irq > 0) free_irq(irq, NULL);
 	unregister_blkdev(ramhd_major,RAMHD_NAME);  
 	clean_ramdev();
 	ramhd_space_clean();  
