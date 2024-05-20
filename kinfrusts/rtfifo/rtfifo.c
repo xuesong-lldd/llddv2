@@ -6,22 +6,33 @@
 #include <uapi/linux/sched/types.h>
 
 /*
- * In this demo, we create 2 kthreads, one is normal, another is rt-fifo. Acccording
- * to the scheduling policy, the rt kthread will always run on cpu until it exits,
- * a 3s delay is added to make this more easier to be observed.
- * A different output will get if we comment out the sched_set_fifo(p1) in the code... 
+ * Run this demo in the system with PREEMPT-RT kconfig enabled.
+ * We create two kthreads in this demo: one is normal, another is realtime(rt-fifo).
+ * We make the normal kthread to run first, it will output the pr_info(...) message first,
+ * then it will enter a 500ms-duration busy loop which creates a preemption window for the
+ * the rt-kthread, the normal kthread will be preempted once the rt-fifo is ready to run.
+ *
+ * On an PREEMPT-RT enabled RT-Linux system, an example output like below:
+ * ...
+ * [501967.308570] +normal_kthread_func+: sched_policy = 0@cpu0
+ * [501967.315093] +fifo_kthread_func+: sched_policy = 1@cpu0
+ * [501967.415067] fifo count = 200446012
+ * [501967.807062] normal count = 794840515
+ *
+ * For the PREEMPT-RT kconfig disabled system, since the kernel code path can't be preempted,
+ * so the demo behavior is not predictable because normal kthread is the kernel code
  */
 
-#defince RT_CORE_0	0
+#define RT_CORE_0	0
 
 /* normal kthread func */
 static int normal_kthread_func(void *data)
 {	
 	u64 count = 0;
-	unsigned long timeout = jiffies + msecs_to_jiffies(5);
+	unsigned long timeout = jiffies + msecs_to_jiffies(500);
 	unsigned int policy = current->policy;
 	pr_info("+%s+: sched_policy = %u@cpu%d\n", __func__, policy, smp_processor_id());
-	
+	/* add the busy wait to create a preempt window for the rt-kthread... */
 	while(time_before(jiffies, timeout))
 		count++; 
 	pr_info("normal count = %llu\n", count);
@@ -33,7 +44,7 @@ static int fifo_kthread_func(void *data)
 {
 
 	u64 count = 0;
-	unsigned long timeout = jiffies + msecs_to_jiffies(3000);
+	unsigned long timeout = jiffies + msecs_to_jiffies(100);
 	unsigned int policy = current->policy;
 	pr_info("+%s+: sched_policy = %u@cpu%d\n", __func__, policy, smp_processor_id());
 	
@@ -44,19 +55,13 @@ static int fifo_kthread_func(void *data)
 	return 0;
 }
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,10,0)
-/* this function has been a public GPL exported function in newer kernel version */
-static void sched_set_fifo(struct task_struct *p)
-{
-	struct sched_param sp = { .sched_priority = MAX_RT_PRIO / 2 };
-	WARN_ON_ONCE(sched_setscheduler_nocheck(p, SCHED_FIFO, &sp) != 0);
-}
-#endif
-
 static int rt_demo_init(void)
 {
 	int ret = 0;
 	struct task_struct *p0, *p1;
+	u64 count = 0;
+	unsigned long timeout = jiffies + msecs_to_jiffies(5);
+
 	printk("++%s++\n", __func__);
 	p0 = kthread_create(normal_kthread_func, NULL, "normal_kthead");
 	if (IS_ERR(p0)) {
@@ -74,10 +79,15 @@ static int rt_demo_init(void)
 	}
 	/* bind the same processor avoid to dispatch it to a different cpu */
 	kthread_bind(p1, RT_CORE_0);
+	/* set the sched policy as RT-FIFO and sched priority as 50 for the p1 */
 	sched_set_fifo(p1);
+
+	/* wakeup the normal thread first... */
 	wake_up_process(p0);
-	/* delay to make normal kthread more graceful to enqueue the rq */
-	mdelay(1);
+	/* busy wait 5ms to make the normal has the chance to execute first... */
+	while(time_before(jiffies, timeout))
+		count++;
+	/* wakeup the rt-kthread, which will preempt the normal kthread in the PREEMPT-RT system */
 	wake_up_process(p1);
 
 	return ret;
