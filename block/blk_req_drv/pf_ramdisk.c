@@ -240,9 +240,10 @@ static int pf_ramdisk_probe(struct platform_device *pdev)
 		goto err_out;
 	} else {
 		pr_info("ramdisk irq = %d\n", irq);
-		ret = request_irq(irq, ramdisk_interrupt, 0, "rd irq", NULL);
+		ret = request_irq(irq, ramdisk_interrupt, 0, "ramdisk", NULL);
 		if (ret) {
-			pr_err("IRQ %d is not free\n", irq);
+			pr_err("request irq %d failed: %d\n", irq, ret);
+			error = ret;
 			goto err_out;
 		}
 		pr_info("request irq(%d) succeeds\n", irq);
