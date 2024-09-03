@@ -21,6 +21,7 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/irqdomain.h>
 #include <asm/uaccess.h>
 
 //#define CREATE_TRACE_POINTS
@@ -214,6 +215,7 @@ static irqreturn_t ramdisk_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+/* no teardown for the error out, just for demo purpose */
 static int pf_ramdisk_probe(struct platform_device *pdev)
 {
 	int i, error = 0, ret;
@@ -299,10 +301,17 @@ static int pf_ramdisk_remove(struct platform_device *pdev)
 		put_disk(rdev[i]->gd);     
 		blk_mq_free_tag_set(&tag_set[i]);
 	}
-	if (irq > 0) free_irq(irq, NULL);
+	if (irq > 0) {
+		/* release its action first */
+		free_irq(irq, NULL);
+		/* release the irq and the mapping */
+		irq_dispose_mapping(irq);
+	}
+
 	unregister_blkdev(ramhd_major,RAMHD_NAME);  
 	clean_ramdev();
-	ramhd_space_clean();  
+	ramhd_space_clean();
+
     return 0;
 }
 
