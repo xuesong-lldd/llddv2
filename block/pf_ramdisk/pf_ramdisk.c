@@ -1,11 +1,24 @@
-/*
- * #insmod ramhd_mq.ko
+/* This is the demo for the RAM-based block device platform driver
+ *
+ * Usage Steps -
+ * #insmod pf_ramdisk.ko
  * #fdisk /dev/ramsda
  * #mkfs.ext4 /dev/ramsda1
  * #mount /dev/ramsda1 /mnt
  *
  * Adapt the raw kernel module into a platform device driver on Dec.12, 2023
+ * The ramdisk device node for this demo is:
+
+	ramdisk {
+		compatible = "brcm,bcm2711-ramdisk";
+		sector_sz = <0x200>;
+		heads = <8>;
+		interrupts = <0 150 1 0 152 4>;
+		interrupt-names = "ramdisk";
+	};
  */
+
+#define pr_fmt(fmt)  "ramdisk: " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -21,8 +34,8 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
-#include <linux/irqdomain.h>
 #include <asm/uaccess.h>
+#include <linux/irqdomain.h>
 
 //#define CREATE_TRACE_POINTS
 //#include "pf_ramdisk.h"
@@ -48,6 +61,8 @@ typedef struct{
 }RAMHD_DEV;
 
 char *sdisk[RAMHD_MAX_DEVICE];
+
+int devid = 1;
 
 static const struct of_device_id pf_ramdisk_dt_match[] = {
     { .compatible = "brcm,bcm2711-ramdisk", NULL },
@@ -208,7 +223,8 @@ static const struct blk_mq_ops rdev_mq_ops = {
 	.queue_rq = ramhd_req_func,
 };
 
-int irq;
+int irq_num;
+int irq[16];
 
 static irqreturn_t ramdisk_interrupt(int irq, void *dev_id)
 {
@@ -235,22 +251,34 @@ static int pf_ramdisk_probe(struct platform_device *pdev)
 		goto err_out;
 	}
 
-	/* get the irq for demo purpose only. This will create a foler under /sys/kernel/irq */
-	irq = platform_get_irq(pdev, 0);
-	if (irq < 0) {
-		pr_err("get irq failed:%d\n", irq);
-		error = irq;
+	irq_num = platform_irq_count(pdev);
+	if (irq_num < 0) {
+		pr_err("platform_irq_count() failed: %d\n", irq_num);
+		error = irq_num;
 		goto err_out;
-	} else {
-		pr_info("ramdisk irq = %d\n", irq);
-		ret = request_irq(irq, ramdisk_interrupt, 0, "ramdisk", NULL);
-		if (ret) {
-			pr_err("request irq %d failed: %d\n", irq, ret);
-			error = ret;
-			goto err_out;
-		}
-		pr_info("request irq(%d) succeeds\n", irq);
 	}
+	pr_info("platform_irq_count() get irq number = %d\n", irq_num);
+
+	/* get the irq for demo purpose only. This will create a foler under /sys/kernel/irq */
+	for (i = 0; i < irq_num; i++) {
+		irq[i] = platform_get_irq(pdev, i);
+		if (irq[i] < 0) {
+		    pr_err("get irq failed:%d\n", irq[i]);
+		    error = irq[i];
+		    goto err_out;
+		}
+		else
+		    pr_info("ramdisk irq#%d = %d\n", i, irq[i]);
+	}
+
+	/* we just simply make use of the first irq for the demo */
+	ret = request_irq(irq[0], ramdisk_interrupt, IRQF_SHARED | IRQ_TYPE_LEVEL_HIGH, "ramdisk", &devid);
+	if (ret) {
+	    pr_err("request irq %d failed: %d\n", irq[0], ret);
+	    error = ret;
+	    goto err_out;
+	}
+	pr_info("request irq(%d) succeeds, devid = %d\n", irq[0], devid);
 
 	for(i = 0; i < RAMHD_MAX_DEVICE; i++)
 	{
@@ -301,28 +329,30 @@ static int pf_ramdisk_remove(struct platform_device *pdev)
 		put_disk(rdev[i]->gd);     
 		blk_mq_free_tag_set(&tag_set[i]);
 	}
-	if (irq > 0) {
-		/* release its action first */
-		free_irq(irq, NULL);
-		/* release the irq and the mapping */
-		irq_dispose_mapping(irq);
+
+	/* irq teardown */
+	if (irq[0] > 0) {
+		pr_info("free irq %d\n", irq[0]); 
+		free_irq(irq[0], &devid);
+		for (i = 0; i < irq_num; i++)
+			irq_dispose_mapping(irq[i]);
 	}
 
 	unregister_blkdev(ramhd_major,RAMHD_NAME);  
 	clean_ramdev();
 	ramhd_space_clean();
-
-    return 0;
+  
+	return 0;
 }
 
 static struct platform_driver pf_ramdisk_driver = {
-    .driver = {
-        .name = "pf-ramdisk",
-        .probe_type = PROBE_PREFER_ASYNCHRONOUS,
-        .of_match_table = pf_ramdisk_dt_match,
-    },
-    .probe = pf_ramdisk_probe,
-    .remove = pf_ramdisk_remove,
+	.driver = {
+		.name = "pf-ramdisk",
+		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
+		.of_match_table = pf_ramdisk_dt_match,
+	},
+	.probe = pf_ramdisk_probe,
+	.remove = pf_ramdisk_remove,
 };
 
 module_platform_driver(pf_ramdisk_driver);
