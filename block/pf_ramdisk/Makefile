@@ -1,10 +1,8 @@
 obj-m := pf_ramdisk.o
-#KERNELDIR := /lib/modules/$(shell uname -r)/build
-KERNELDIR := /home/xuesong/linux/raspberrypi/target/kbld
+KERNELDIR := /home/xuesong/linux/rt/ori-bld
+CFLAGS_pf_ramdisk.o = -I$(src)
+
 PWD := $(shell pwd)
-
-CFLAGS_ramhd_mq.o = -I$(src)
-
 default:
 	$(MAKE)  -C $(KERNELDIR) M=$(PWD) modules
 clean:

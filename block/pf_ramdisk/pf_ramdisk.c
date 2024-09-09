@@ -37,8 +37,8 @@
 #include <asm/uaccess.h>
 #include <linux/irqdomain.h>
 
-//#define CREATE_TRACE_POINTS
-//#include "pf_ramdisk.h"
+#define CREATE_TRACE_POINTS
+#include "pf_ramdisk.h"
 
 #define RAMHD_NAME              "ramsd"
 #define RAMHD_MAX_DEVICE        1
@@ -200,7 +200,7 @@ static blk_status_t ramhd_req_func (struct blk_mq_hw_ctx *hctx,
 		buffer = page_address(bv.bv_page) + bv.bv_offset;
 		printk("current seg[sector:%lld] buffer: 0x%px, size = %u@offset %u\n", bio->bi_iter.bi_sector, buffer, size, bv.bv_offset);
 		/* insert a TP here, pass the pointer of the data struct instead of the object (like 'bv') */
-		//trace_ramhd_req_func(bio, &bv, buffer);
+		trace_ramdisk_req_func(bio, &bv, buffer);
 		if ((unsigned long)buffer % RAMHD_SECTOR_SIZE) {
 			pr_err(RAMHD_NAME ": buffer %p not aligned\n", buffer);
 			return BLK_STS_IOERR;

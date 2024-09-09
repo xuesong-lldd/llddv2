@@ -1,12 +1,12 @@
 #undef TRACE_SYSTEM
-#define TRACE_SYSTEM	ramhd
+#define TRACE_SYSTEM	ramsd
 
-#if !defined(_RAMHD_REQ_H) || defined(TRACE_HEADER_MULTI_READ)
-#define _RAMHD_REQ_H
+#if !defined(_PF_RAMDISK_H) || defined(TRACE_HEADER_MULTI_READ)
+#define _PF_RAMDISK_H
 
 #include <linux/tracepoint.h>
 
-TRACE_EVENT(ramhd_req_func,
+TRACE_EVENT(ramdisk_req_func,
 	/* all the data struct parameter is in form of pointer instead of object */
 	TP_PROTO(struct bio *bio, struct bio_vec *bv, char *buffer),
 
@@ -30,12 +30,11 @@ TRACE_EVENT(ramhd_req_func,
 			__entry->size, __entry->offset)
 );
 
-#endif /* _RAMHD_REQ_H */
+#endif /* _PF_RAMDISK_H */
 
-/* This part must be outside protection */
+/* This must be outside ifdef _PF_RAMDISK_H */
 #undef TRACE_INCLUDE_PATH
-#undef TRACE_INCLUDE_FILE
 #define TRACE_INCLUDE_PATH .
-#define TRACE_INCLUDE_FILE pf_ramdisk
-
-#include <trace/define_trace.h>	
+#undef TRACE_INCLUDE_FILE
+#define TRACE_INCLUDE_FILE      pf_ramdisk
+#include <trace/define_trace.h>
