@@ -1,1 +1,0 @@
-savedcmd_/home/xuesong/linux/trainings/llddv2/block/blk_mq_ram/ramhd_mq.ko := ld -r -m elf_x86_64 -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home/xuesong/linux/trainings/llddv2/block/blk_mq_ram/ramhd_mq.ko /home/xuesong/linux/trainings/llddv2/block/blk_mq_ram/ramhd_mq.o /home/xuesong/linux/trainings/llddv2/block/blk_mq_ram/ramhd_mq.mod.o

@@ -16,6 +16,7 @@
 #include <linux/blkdev.h>
 #include <linux/hdreg.h>
 #include <linux/blk-mq.h>
+#include <linux/version.h>
 #include <asm/uaccess.h>
 
 #define CREATE_TRACE_POINTS
@@ -112,7 +113,17 @@ err_out:
 	return -ENOMEM;
 }
 
+/* 
+ * .open(...) adaptation. Confirm that the 6.1.83 still use block_device, while
+ * the latest kernel version use .open(gendisk *, blk_mode_t), but the exact kernel
+ * version to merge this change is not clear yet, so the #else may change to fit
+ * your running kernel
+ */
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(6,1,83)
+int ramhd_open(struct block_device *bdev, fmode_t mode)
+#else
 int ramhd_open(struct gendisk *disk, blk_mode_t mode)
+#endif
 {
 	return 0;
 }

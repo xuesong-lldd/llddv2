@@ -1,1 +1,0 @@
-savedcmd_/home/xuesong/linux/trainings/llddv2/block/blk_mq_ram/Module.symvers :=  scripts/mod/modpost -M -m -a      -o /home/xuesong/linux/trainings/llddv2/block/blk_mq_ram/Module.symvers -T /home/xuesong/linux/trainings/llddv2/block/blk_mq_ram/modules.order -i Module.symvers -e 
