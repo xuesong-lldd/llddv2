@@ -1,5 +1,5 @@
 obj-m := pf_ramdisk.o
-KERNELDIR := /home/xuesong/linux/rt/ori-bld
+KERNELDIR := /lib/modules/$(shell uname -r)/build
 CFLAGS_pf_ramdisk.o = -I$(src)
 
 PWD := $(shell pwd)
