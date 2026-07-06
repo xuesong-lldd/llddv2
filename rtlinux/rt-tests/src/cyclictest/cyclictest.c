@@ -151,6 +151,7 @@ struct thread_stat {
 	pthread_t thread;
 	int threadstarted;
 	int tid;
+	int cpu;
 	long reduce;
 	long redmax;
 	long cycleofmax;
@@ -672,6 +673,7 @@ static void *timerthread(void *param)
 	interval.tv_nsec = (par->interval % USEC_PER_SEC) * 1000;
 
 	stat->tid = gettid();
+	stat->cpu = -1;
 
 	sigemptyset(&sigset);
 	sigaddset(&sigset, par->signal);
@@ -870,6 +872,7 @@ static void *timerthread(void *param)
 			pthread_mutex_unlock(&break_thread_id_lock);
 		}
 		stat->act = diff;
+	stat->cpu = sched_getcpu();
 
 		if (par->bufmsk) {
 			stat->values[stat->cycles & par->bufmsk] = diff;
@@ -1607,13 +1610,13 @@ static void print_stat(FILE *fp, struct thread_param *par, int index, int verbos
 		if (quiet != 1) {
 			char *fmt;
 			if (use_nsecs)
-				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+				fmt = "T:%2d (%5d[%2d]) P:%2d I:%ld C:%7lu "
 				        "Min:%7ld Act:%8ld Avg:%8ld Max:%8ld";
 			else
-				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+				fmt = "T:%2d (%5d[%2d]) P:%2d I:%ld C:%7lu "
 				        "Min:%7ld Act:%5ld Avg:%5ld Max:%8ld";
 
-			fprintf(fp, fmt, index, stat->tid, par->prio,
+			fprintf(fp, fmt, index, stat->tid, stat->cpu, par->prio,
 				par->interval, stat->cycles, stat->min,
 				stat->act, stat->cycles ?
 				(long)(stat->avg/stat->cycles) : 0, stat->max);
@@ -1663,13 +1666,13 @@ static void rstat_print_stat(struct thread_param *par, int index, int verbose, i
 		if (quiet != 1) {
 			char *fmt;
 			if (use_nsecs)
-				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+				fmt = "T:%2d (%5d[%2d]) P:%2d I:%ld C:%7lu "
 				        "Min:%7ld Act:%8ld Avg:%8ld Max:%8ld";
 			else
-				fmt = "T:%2d (%5d) P:%2d I:%ld C:%7lu "
+				fmt = "T:%2d (%5d[%2d]) P:%2d I:%ld C:%7lu "
 				        "Min:%7ld Act:%5ld Avg:%5ld Max:%8ld";
 
-			dprintf(fd, fmt, index, stat->tid, par->prio,
+			dprintf(fd, fmt, index, stat->tid, stat->cpu, par->prio,
 				par->interval, stat->cycles, stat->min,
 				stat->act, stat->cycles ?
 				(long)(stat->avg/stat->cycles) : 0, stat->max);
